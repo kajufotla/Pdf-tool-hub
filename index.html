@@ -14,18 +14,15 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f3f6fc;
-            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,0.03) 0, transparent 50%), 
-                              radial-gradient(at 50% 0%, hsla(225,39%,30%,0.03) 0, transparent 50%), 
-                              radial-gradient(at 100% 0%, hsla(339,49%,30%,0.03) 0, transparent 50%);
+            background-color: #f8fafc;
         }
         
         /* Glassmorphism Utilities */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(226, 232, 240, 0.8);
         }
 
         /* Mobile Safe Area for Notch/Status Bar */
@@ -69,17 +66,17 @@
                     <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
                         Streamline your workflow with <span class="text-blue-600">Pro Utilities</span>
                     </h1>
-                    <p class="text-lg font-bold text-indigo-600 tracking-wide">100% Client-Side • Secure • Fast</p>
+                    <p class="text-lg font-bold text-blue-600 tracking-wide">100% Client-Side • Secure • Fast</p>
                 </div>
                 
                 <div class="flex items-center space-x-6 text-xs font-semibold text-slate-500 pt-4">
-                    <div class="flex items-center space-x-1.5"><i class="fa-solid fa-shield-check text-blue-500"></i> <span>Zero Server Uploads</span></div>
+                    <div class="flex items-center space-x-1.5"><i class="fa-solid fa-circle-check text-blue-500"></i> <span>Zero Server Uploads</span></div>
                     <div class="flex items-center space-x-1.5"><i class="fa-solid fa-bolt text-indigo-500"></i> <span>Lightning Fast</span></div>
                 </div>
             </div>
 
             <div class="lg:col-span-6 flex justify-center relative">
-                <div class="w-full max-w-lg glass-panel shadow-2xl rounded-3xl p-8 transition-all duration-300 transform" id="tool-workspace-box">
+                <div class="w-full max-w-lg glass-panel shadow-xl rounded-3xl p-8 transition-all duration-300 transform" id="tool-workspace-box">
                     <div class="flex items-center space-x-2 mb-6">
                         <span class="w-3 h-3 rounded-full bg-red-400"></span>
                         <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
@@ -87,7 +84,7 @@
                     </div>
                     
                     <div id="canvas-content" class="text-center py-8 space-y-4">
-                        <div class="w-20 h-20 bg-blue-50/50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner animate-pulse">
+                        <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner animate-pulse">
                             <i class="fa-solid fa-wand-magic-sparkles"></i>
                         </div>
                         <h3 class="text-xl font-bold text-slate-800">Select a Module</h3>
@@ -103,8 +100,8 @@
                 <p class="text-sm text-slate-500">High-fidelity processing tools</p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5" id="tools-grid">
-                </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="tools-grid">
+            </div>
         </section>
     </main>
 
@@ -148,7 +145,6 @@
 
         /**
          * UI Controller Class
-         * Handles toast notifications, tool rendering, and DOM manipulation
          */
         class AppUI {
             static showToast(msg, type = 'success') {
@@ -172,7 +168,7 @@
                     <div class="space-y-3">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Source File(s)</label>
                         <input type="file" id="active-file-input" ${multiple ? 'multiple' : ''} accept="${accept}" 
-                            class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-${tool.color}-50 file:text-${tool.color}-700 hover:file:bg-${tool.color}-100 cursor-pointer border border-dashed border-${tool.color}-200 rounded-2xl p-4 bg-${tool.color}-50/10 transition-colors">
+                            class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-${tool.color}-50 file:text-${tool.color}-700 hover:file:bg-${tool.color}-100 cursor-pointer border border-dashed border-${tool.border}-200 rounded-2xl p-4 bg-${tool.color}-50/10 transition-colors">
                     </div>
                 `;
             }
@@ -192,7 +188,6 @@
 
         /**
          * PDF Engine Class
-         * Encapsulates all heavy processing logic securely
          */
         class PDFEngine {
             static async downloadBlob(blob, filename) {
@@ -231,13 +226,12 @@
                     } else if (id === 'merge') {
                         finalBlob = await this.processMerge(input.files);
                     } else {
-                        // Single PDF operations
                         const fileBytes = await input.files[0].arrayBuffer();
                         const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
                         finalBlob = await this.processSinglePDF(id, pdfDoc);
                         
                         if(id === 'split') {
-                            filename = `Split_Pages.zip`; // Split returns a ZIP
+                            filename = `Split_Pages.zip`;
                         }
                     }
 
@@ -284,7 +278,6 @@
 
             static async processImagesToPdf(files) {
                 const doc = await PDFDocument.create();
-                // A4 dimensions at 72 PPI
                 const A4_WIDTH = 595.28;
                 const A4_HEIGHT = 841.89;
 
@@ -295,7 +288,6 @@
                     else if (f.type === 'image/jpeg' || f.type === 'image/jpg') img = await doc.embedJpg(bytes);
                     else continue;
 
-                    // Calculate scale to fit A4
                     const scale = Math.min(A4_WIDTH / img.width, A4_HEIGHT / img.height);
                     const scaledWidth = img.width * scale;
                     const scaledHeight = img.height * scale;
@@ -384,10 +376,10 @@
         }
 
         /**
-         * Configuration & Initialization
+         * Configuration & Initialization - EXACT MATCH WITH SCREENSHOT UI
          */
         const ToolsConfig = {
-            resizer: { name: "Image Resizer", desc: "Resize dimensions offline.", icon: "fa-compress", color: "red", 
+            resizer: { name: "Image Resizer", desc: "Resize dimensions offline.", icon: "fa-compress", color: "red-500", border: "border-b-[3px] border-b-red-500 hover:border-red-500/40", 
                 render: (t) => `
                     <div class="space-y-3">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Image</label>
@@ -403,31 +395,31 @@
                         </select>
                     </div>` 
             },
-            merge: { name: "Merge PDF", desc: "Combine multiple PDFs.", icon: "fa-copy", color: "blue", render: (t) => AppUI.renderFileInput(t, true) },
-            split: { name: "Split to ZIP", desc: "Extract pages into a ZIP archive.", icon: "fa-scissors", color: "green", render: (t) => AppUI.renderFileInput(t) },
-            rotate: { name: "Rotate Pages", desc: "Rotate all pages by 90°.", icon: "fa-rotate-right", color: "purple", render: (t) => AppUI.renderFileInput(t) },
-            del: { name: "Delete Page", desc: "Remove a specific page.", icon: "fa-trash", color: "amber", render: (t) => AppUI.renderFileInput(t) + `<input type="number" id="pg-input" placeholder="Page number (e.g. 1)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-500 outline-none">` },
-            extract: { name: "Extract Page", desc: "Isolate a single page.", icon: "fa-file-export", color: "orange", render: (t) => AppUI.renderFileInput(t) + `<input type="number" id="pg-input" placeholder="Page number to extract" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 outline-none">` },
-            reorder: { name: "Reverse PDF", desc: "Flip layout order backwards.", icon: "fa-arrow-down-up-across-line", color: "rose", render: (t) => AppUI.renderFileInput(t) },
-            watermark: { name: "Watermark", desc: "Stamp custom text.", icon: "fa-stamp", color: "cyan", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="txt-input" placeholder="Text (e.g., CONFIDENTIAL)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-cyan-500 outline-none">` },
-            numbers: { name: "Page Numbers", desc: "Inject sequence digits.", icon: "fa-list-ol", color: "emerald", render: (t) => AppUI.renderFileInput(t) },
-            imgToPdf: { name: "Image to PDF", desc: "Convert photos to A4 PDF.", icon: "fa-images", color: "indigo", render: (t) => AppUI.renderFileInput(t, true, "image/*") }
+            merge: { name: "Merge PDF", desc: "Combine multiple PDFs.", icon: "fa-copy", color: "blue-600", border: "border-b-[3px] border-b-blue-600 hover:border-blue-600/40", render: (t) => AppUI.renderFileInput(t, true) },
+            split: { name: "Split to ZIP", desc: "Extract pages into a ZIP archive.", icon: "fa-scissors", color: "emerald-600", border: "border-b-[3px] border-b-emerald-600 hover:border-emerald-600/40", render: (t) => AppUI.renderFileInput(t) },
+            rotate: { name: "Rotate Pages", desc: "Rotate all pages by 90°.", icon: "fa-rotate-right", color: "purple-600", border: "border-b-[3px] border-b-purple-600 hover:border-purple-600/40", render: (t) => AppUI.renderFileInput(t) },
+            del: { name: "Delete Page", desc: "Remove a specific page.", icon: "fa-trash", color: "amber-500", border: "border-b-[3px] border-b-amber-500 hover:border-amber-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="number" id="pg-input" placeholder="Page number (e.g. 1)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-500 outline-none">` },
+            extract: { name: "Extract Page", desc: "Isolate a single page.", icon: "fa-file-export", color: "orange-500", border: "border-b-[3px] border-b-orange-500 hover:border-orange-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="number" id="pg-input" placeholder="Page number to extract" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 outline-none">` },
+            reorder: { name: "Reverse PDF", desc: "Flip layout order backwards.", icon: "fa-arrow-down-up-across-line", color: "pink-600", border: "border-b-[3px] border-b-pink-600 hover:border-pink-600/40", render: (t) => AppUI.renderFileInput(t) },
+            watermark: { name: "Watermark", desc: "Stamp custom text.", icon: "fa-stamp", color: "cyan-500", border: "border-b-[3px] border-b-cyan-500 hover:border-cyan-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="txt-input" placeholder="Text (e.g., CONFIDENTIAL)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-cyan-500 outline-none">` },
+            numbers: { name: "Page Numbers", desc: "Inject sequence digits.", icon: "fa-list-ol", color: "teal-500", border: "border-b-[3px] border-b-teal-500 hover:border-teal-500/40", render: (t) => AppUI.renderFileInput(t) },
+            imgToPdf: { name: "Image to PDF", desc: "Convert photos to A4 PDF.", icon: "fa-images", color: "blue-700", border: "border-b-[3px] border-b-blue-700 hover:border-blue-700/40", render: (t) => AppUI.renderFileInput(t, true, "image/*") }
         };
 
-        // Render Grid
+        // Render Grid with Beautiful Screenshot UI Styles
         const grid = document.getElementById('tools-grid');
         Object.keys(ToolsConfig).forEach(key => {
             const tool = ToolsConfig[key];
             const card = document.createElement('div');
-            card.className = `glass-panel hover:border-${tool.color}-400/50 p-5 rounded-2xl text-center space-y-4 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer`;
+            card.className = `glass-panel ${tool.border} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition-all duration-300 group cursor-pointer border border-slate-100`;
             card.onclick = () => activateWorkspace(key);
             card.innerHTML = `
-                <div class="space-y-3">
-                    <div class="w-12 h-12 bg-${tool.color}-50 text-${tool.color}-600 rounded-xl flex items-center justify-center text-lg mx-auto transition-transform group-hover:scale-110 shadow-sm border border-${tool.color}-100">
-                        <i class="fa-solid ${tool.icon}"></i>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-sm tracking-tight">${tool.name}</h4>
-                    <p class="text-slate-400 text-[11px] leading-relaxed">${tool.desc}</p>
+                <div class="w-14 h-12 bg-${tool.color} text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm">
+                    <i class="fa-solid ${tool.icon}"></i>
+                </div>
+                <div class="text-left space-y-0.5">
+                    <h4 class="font-bold text-slate-900 text-sm tracking-tight">${tool.name}</h4>
+                    <p class="text-slate-400 text-xs leading-tight">${tool.desc}</p>
                 </div>
             `;
             grid.appendChild(card);
@@ -446,7 +438,7 @@
                 canvas.className = "text-left space-y-5";
                 canvas.innerHTML = `
                     <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-${tool.color}-100 text-${tool.color}-600 rounded-xl flex items-center justify-center text-lg shadow-sm">
+                        <div class="w-10 h-10 bg-${tool.color} text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
                             <i class="fa-solid ${tool.icon}"></i>
                         </div>
                         <div>
@@ -456,14 +448,13 @@
                     </div>
                     <hr class="border-slate-200/60">
                     ${tool.render(tool)}
-                    <button id="execute-btn" onclick="PDFEngine.execute('${id}')" class="w-full mt-4 bg-${tool.color}-600 hover:bg-${tool.color}-700 text-white text-xs font-bold py-3.5 rounded-xl shadow-lg shadow-${tool.color}-200 transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center">
+                    <button id="execute-btn" onclick="PDFEngine.execute('${id}')" class="w-full mt-4 bg-${tool.color} hover:opacity-90 text-white text-xs font-bold py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center">
                         Execute ${tool.name}
                     </button>
                 `;
                 box.style.opacity = '1';
                 box.style.transform = 'scale(1)';
                 
-                // Purely scrolls to the workspace upload box smoothly on mobile clicks
                 box.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 200);
         }
