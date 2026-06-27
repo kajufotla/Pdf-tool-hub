@@ -1,0 +1,58 @@
+body {
+  font-family: 'Inter', sans-serif;
+  background: #fcfdfe;
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at top right, rgba(238,230,255,0.6), transparent 40%),
+              radial-gradient(circle at top left, rgba(230,242,255,0.6), transparent 40%);
+}
+
+.nav {
+  display:flex;
+  justify-content:space-between;
+  padding:20px;
+  font-weight:700;
+}
+
+.logo {
+  font-size:20px;
+  color:#2563eb;
+}
+
+.logo span {
+  color:#4f46e5;
+}
+
+#tools-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap:15px;
+  padding:20px;
+}
+
+.tool-card {
+  background:white;
+  padding:15px;
+  border-radius:15px;
+  border:1px solid #eee;
+  text-align:center;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.tool-card:hover {
+  transform: translateY(-3px);
+  border-color:#2563eb;
+}
+
+#toast {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#22c55e;
+  color:white;
+  padding:10px 15px;
+  border-radius:10px;
+  display:none;
+}
