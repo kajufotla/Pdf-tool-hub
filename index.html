@@ -1,302 +1,913 @@
 (() => {
-    const { PDFDocument, rgb, degrees } = PDFLib;
+const { PDFDocument, rgb, degrees } = PDFLib;
 
-    const AppState = {
-        isProcessing: false,
-        activeId: null
-    };
+// Global App State with extended SaaS state properties
+const AppState = { 
+    isProcessing: false, 
+    activeId: null,
+    uploadedFiles: [], // Holds file wrappers with metadata, thumbnails, rotation angles, etc.
+    draggedIndex: null
+}; 
 
-    // Explicit compilation dictionary protecting Tailwind utility classes from dynamic omission
-    const ColorMap = {
-        'red-500': { bg: 'bg-red-500', hover: 'hover:bg-red-600', fileBg: 'file:bg-red-50', fileText: 'file:text-red-700', border: 'border-red-200', bgMuted: 'bg-red-50/10' },
-        'blue-600': { bg: 'bg-blue-600', hover: 'hover:bg-blue-700', fileBg: 'file:bg-blue-50', fileText: 'file:text-blue-700', border: 'border-blue-200', bgMuted: 'bg-blue-50/10' },
-        'emerald-600': { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', fileBg: 'file:bg-emerald-50', fileText: 'file:text-emerald-700', border: 'border-emerald-200', bgMuted: 'bg-emerald-50/10' },
-        'purple-600': { bg: 'bg-purple-600', hover: 'hover:bg-purple-700', fileBg: 'file:bg-purple-50', fileText: 'file:text-purple-700', border: 'border-purple-200', bgMuted: 'bg-purple-50/10' },
-        'amber-500': { bg: 'bg-amber-500', hover: 'hover:bg-amber-600', fileBg: 'file:bg-amber-50', fileText: 'file:text-amber-700', border: 'border-amber-200', bgMuted: 'bg-amber-50/10' },
-        'orange-500': { bg: 'bg-orange-500', hover: 'hover:bg-orange-600', fileBg: 'file:bg-orange-50', fileText: 'file:text-orange-700', border: 'border-orange-200', bgMuted: 'bg-orange-50/10' },
-        'pink-600': { bg: 'bg-pink-600', hover: 'hover:bg-pink-700', fileBg: 'file:bg-pink-50', fileText: 'file:text-pink-700', border: 'border-pink-200', bgMuted: 'bg-pink-50/10' },
-        'cyan-500': { bg: 'bg-cyan-500', hover: 'hover:bg-cyan-600', fileBg: 'file:bg-cyan-50', fileText: 'file:text-cyan-700', border: 'border-cyan-200', bgMuted: 'bg-cyan-50/10' },
-        'teal-500': { bg: 'bg-teal-500', hover: 'hover:bg-teal-600', fileBg: 'file:bg-teal-50', fileText: 'file:text-teal-700', border: 'border-teal-200', bgMuted: 'bg-teal-50/10' },
-        'blue-700': { bg: 'bg-blue-700', hover: 'hover:bg-blue-800', fileBg: 'file:bg-blue-50', fileText: 'file:text-blue-700', border: 'border-blue-200', bgMuted: 'bg-blue-50/10' }
-    };
+// Explicit compilation dictionary protecting Tailwind utility classes from dynamic omission 
+const ColorMap = { 
+    'red-500': { bg: 'bg-red-500', hover: 'hover:bg-red-600', fileBg: 'file:bg-red-50', fileText: 'file:text-red-700', border: 'border-red-200', bgMuted: 'bg-red-50/10' }, 
+    'blue-600': { bg: 'bg-blue-600', hover: 'hover:bg-blue-700', fileBg: 'file:bg-blue-50', fileText: 'file:text-blue-700', border: 'border-blue-200', bgMuted: 'bg-blue-50/10' }, 
+    'emerald-600': { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', fileBg: 'file:bg-emerald-50', fileText: 'file:text-emerald-700', border: 'border-emerald-200', bgMuted: 'bg-emerald-50/10' }, 
+    'purple-600': { bg: 'bg-purple-600', hover: 'hover:bg-purple-700', fileBg: 'file:bg-purple-50', fileText: 'file:text-purple-700', border: 'border-purple-200', bgMuted: 'bg-purple-50/10' }, 
+    'amber-500': { bg: 'bg-amber-500', hover: 'hover:bg-amber-600', fileBg: 'file:bg-amber-50', fileText: 'file:text-amber-700', border: 'border-amber-200', bgMuted: 'bg-amber-50/10' }, 
+    'orange-500': { bg: 'bg-orange-500', hover: 'hover:bg-orange-600', fileBg: 'file:bg-orange-50', fileText: 'file:text-orange-700', border: 'border-orange-200', bgMuted: 'bg-orange-50/10' }, 
+    'pink-600': { bg: 'bg-pink-600', hover: 'hover:bg-pink-700', fileBg: 'file:bg-pink-50', fileText: 'file:text-pink-700', border: 'border-pink-200', bgMuted: 'bg-pink-50/10' }, 
+    'cyan-500': { bg: 'bg-cyan-500', hover: 'hover:bg-cyan-600', fileBg: 'file:bg-cyan-50', fileText: 'file:text-cyan-700', border: 'border-cyan-200', bgMuted: 'bg-cyan-50/10' }, 
+    'teal-500': { bg: 'bg-teal-500', hover: 'hover:bg-teal-600', fileBg: 'file:bg-teal-50', fileText: 'file:text-teal-700', border: 'border-teal-200', bgMuted: 'bg-teal-50/10' }, 
+    'blue-700': { bg: 'bg-blue-700', hover: 'hover:bg-blue-800', fileBg: 'file:bg-blue-50', fileText: 'file:text-blue-700', border: 'border-blue-200', bgMuted: 'bg-blue-50/10' } 
+}; 
 
-    class AppUI {
-        static showToast(msg, type = 'success') {
-            const t = document.getElementById('toast');
-            const isError = type === 'error';
-            t.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm"></i> <span>${msg}</span>`;
-            t.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-0 opacity-100 ${isError ? 'bg-red-500 shadow-red-200/50' : 'bg-emerald-600 shadow-emerald-200/50'}`;
-            setTimeout(() => { t.classList.remove('translate-y-0', 'opacity-100'); t.classList.add('translate-y-20', 'opacity-0'); }, 4000);
+class AppUI { 
+    static showToast(msg, type = 'success') { 
+        const t = document.getElementById('toast'); 
+        const isError = type === 'error'; 
+        t.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm"></i> <span>${msg}</span>`; 
+        t.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-0 opacity-100 ${isError ? 'bg-red-500 shadow-red-200/50' : 'bg-emerald-600 shadow-emerald-200/50'}`; 
+        setTimeout(() => { 
+            t.classList.remove('translate-y-0', 'opacity-100'); 
+            t.classList.add('translate-y-20', 'opacity-0'); 
+        }, 4000); 
+    } 
+
+    static setGlobalLock(locked) { 
+        AppState.isProcessing = locked; 
+        const gridItems = document.querySelectorAll('#tools-grid a'); 
+        gridItems.forEach(item => { 
+            if (locked) item.classList.add('opacity-40', 'pointer-events-none'); 
+            else item.classList.remove('opacity-40', 'pointer-events-none'); 
+        }); 
+        const progressIndicator = document.getElementById('global-progress');
+        if (progressIndicator) {
+            if (locked) progressIndicator.classList.remove('hidden');
+            else progressIndicator.classList.add('hidden');
         }
+    } 
 
-        static setGlobalLock(locked) {
-            AppState.isProcessing = locked;
-            const gridItems = document.querySelectorAll('#tools-grid a');
-            gridItems.forEach(item => {
-                if (locked) item.classList.add('opacity-40', 'pointer-events-none');
-                else item.classList.remove('opacity-40', 'pointer-events-none');
-            });
-        }
+    static renderFileInput(tool, multiple = false, accept = ".pdf") { 
+        const config = ColorMap[tool.color] || ColorMap['blue-600']; 
+        return ` 
+        <div class="space-y-3"> 
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider" id="file-input-label">Source File(s)</label> 
+            <div id="drag-drop-zone" class="border-2 border-dashed ${config.border} rounded-2xl p-6 ${config.bgMuted} transition-colors flex flex-col items-center justify-center space-y-2 cursor-pointer hover:bg-slate-50/50" role="button" aria-labelledby="file-input-label">
+                <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400"></i>
+                <span class="text-xs font-medium text-slate-600">Drag & drop files here or click to browse</span>
+                <input type="file" id="active-file-input" ${multiple ? 'multiple' : ''} accept="${accept}" class="hidden"> 
+            </div>
+            <div id="preview-workspace-container" class="mt-4 hidden space-y-4">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">File Workspace Preview & Reordering</h4>
+                <div id="preview-items-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-2 bg-slate-50 rounded-xl max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>`; 
+    } 
 
-        static renderFileInput(tool, multiple = false, accept = ".pdf") {
-            const config = ColorMap[tool.color] || ColorMap['blue-600'];
-            return `
-                <div class="space-y-3">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Source File(s)</label>
-                    <input type="file" id="active-file-input" ${multiple ? 'multiple' : ''} accept="${accept}" 
-                        class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold ${config.fileBg} ${config.fileText} hover:file:bg-slate-100 cursor-pointer border border-dashed ${config.border} rounded-2xl p-4 ${config.bgMuted} transition-colors">
-                </div>`;
-        }
-    }
+    static async updateWorkspacePreviews(files, id) {
+        const container = document.getElementById('preview-workspace-container');
+        const grid = document.getElementById('preview-items-grid');
+        if (!container || !grid) return;
 
-    class PDFEngine {
-        static async execute(id) {
-            if (AppState.isProcessing) return;
+        grid.innerHTML = '';
+        AppState.uploadedFiles = [];
 
-            const input = document.getElementById('active-file-input');
-            const btn = document.getElementById('execute-btn');
-            if (!input || !input.files || input.files.length === 0) {
-                AppUI.showToast("Please upload a required file to begin.", "error");
-                return;
-            }
-
-            // Lock interface states cleanly across modules
-            AppUI.setGlobalLock(true);
-            const originalBtnText = btn.innerHTML;
-            btn.disabled = true; 
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Processing...`; 
-            btn.classList.add('opacity-70', 'cursor-not-allowed');
-
-            try {
-                let finalBlob = null; 
-                let filename = `Output_${id}.pdf`;
-
-                if (id === 'resizer') { 
-                    finalBlob = await this.processResizer(input.files[0]); 
-                    filename = `Resized_Image.${document.getElementById('img-format').value.split('/')[1]}`; 
-                } else if (id === 'imgToPdf') { 
-                    finalBlob = await this.processImagesToPdf(input.files); 
-                } else if (id === 'merge') { 
-                    finalBlob = await this.processMerge(input.files); 
-                } else {
-                    const fileBytes = await input.files[0].arrayBuffer();
-                    if (fileBytes.byteLength === 0) throw new Error("The uploaded file is empty.");
-                    const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
-                    finalBlob = await this.processSinglePDF(id, pdfDoc);
-                    if (id === 'split') filename = `Split_Pages.zip`;
-                }
-
-                if (finalBlob) {
-                    const url = URL.createObjectURL(finalBlob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click(); 
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 250);
-                    AppUI.showToast("Operation completed successfully!");
-                }
-            } catch (error) { 
-                console.error("[Processing Exception]", error);
-                AppUI.showToast(error.message || "An error occurred during compilation.", 'error'); 
-            } finally { 
-                btn.disabled = false; 
-                btn.innerHTML = originalBtnText; 
-                btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
-                AppUI.setGlobalLock(false);
-            }
-        }
-
-        static async processResizer(file) {
-            const w = parseInt(document.getElementById('img-w').value);
-            const h = parseInt(document.getElementById('img-h').value);
-            const format = document.getElementById('img-format').value;
-            if (!w || !h || w <= 0 || h <= 0) throw new Error("Invalid dimensions specified.");
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileObj = {
+                id: i,
+                file: file,
+                selected: true,
+                rotation: 0,
+                customWidth: 0,
+                customHeight: 0
+            };
+            AppState.uploadedFiles.push(fileObj);
             
-            const objectUrl = URL.createObjectURL(file);
-            const img = await new Promise((resolve, reject) => { 
-                const imgEl = new Image(); 
-                imgEl.onload = () => resolve(imgEl); 
-                imgEl.onerror = () => reject(new Error("Failed to decode image data structure.")); 
-                imgEl.src = objectUrl; 
-            });
+            const card = document.createElement('div');
+            card.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between items-center relative group select-none cursor-grab active:cursor-grabbing";
+            card.setAttribute('draggable', 'true');
+            card.dataset.index = i;
 
-            const canvas = document.createElement('canvas'); 
-            canvas.width = w; 
-            canvas.height = h;
-            const ctx = canvas.getContext('2d', { alpha: format !== 'image/jpeg' });
-            if (format === 'image/jpeg') { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, w, h); }
-            ctx.drawImage(img, 0, 0, w, h);
-            
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, format, 0.92));
-            URL.revokeObjectURL(objectUrl);
-            canvas.width = 0; canvas.height = 0; // Explicit hardware memory flush hint
-            return blob;
-        }
-
-        static async processImagesToPdf(files) {
-            const doc = await PDFDocument.create(); 
-            const A4_WIDTH = 595.28, A4_HEIGHT = 841.89;
-            for (let i = 0; i < files.length; i++) {
-                const bytes = await files[i].arrayBuffer(); 
-                let img;
-                if (files[i].type === 'image/png') img = await doc.embedPng(bytes); 
-                else if (files[i].type === 'image/jpeg' || files[i].type === 'image/jpg') img = await doc.embedJpg(bytes); 
-                else continue;
-                
-                const scale = Math.min(A4_WIDTH / img.width, A4_HEIGHT / img.height);
-                const sw = img.width * scale, sh = img.height * scale;
-                const page = doc.addPage([A4_WIDTH, A4_HEIGHT]);
-                page.drawImage(img, { x: (A4_WIDTH / 2) - (sw / 2), y: (A4_HEIGHT / 2) - (sh / 2), width: sw, height: sh });
+            // Thumbnail Placeholder or Dynamic Generation representation
+            let thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 mb-2 transition-transform duration-200" id="thumb-node-${i}"><i class="fa-solid fa-file-pdf text-xl"></i></div>`;
+            if (file.type.startsWith('image/')) {
+                const url = URL.createObjectURL(file);
+                thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center"><img src="${url}" class="max-h-full max-w-full object-contain" id="thumb-node-${i}"/></div>`;
             }
-            return new Blob([await doc.save()], { type: 'application/pdf' });
-        }
-
-        static async processMerge(files) {
-            const doc = await PDFDocument.create();
-            for (let i = 0; i < files.length; i++) {
-                const bytes = await files[i].arrayBuffer(); 
-                const src = await PDFDocument.load(bytes);
-                const pages = await doc.copyPages(src, src.getPageIndices()); 
-                pages.forEach(p => doc.addPage(p));
-            }
-            return new Blob([await doc.save()], { type: 'application/pdf' });
-        }
-
-        static async processSinglePDF(id, sourceDoc) {
-            const totalPages = sourceDoc.getPageCount();
-            if (id === 'split') {
-                const zip = new JSZip();
-                for (let i = 0; i < totalPages; i++) {
-                    const subDoc = await PDFDocument.create(); 
-                    const [p] = await subDoc.copyPages(sourceDoc, [i]); 
-                    subDoc.addPage(p);
-                    zip.file(`Page_${i + 1}.pdf`, await subDoc.save());
-                }
-                return await zip.generateAsync({ type: "blob" });
-            } 
-            if (id === 'rotate') { 
-                sourceDoc.getPages().forEach(p => p.setRotation(degrees((p.getRotation().angle + 90) % 360))); 
-            } else if (id === 'del') { 
-                const idx = parseInt(document.getElementById('pg-input').value) - 1; 
-                if (isNaN(idx) || idx < 0 || idx >= totalPages) throw new Error("Invalid page index."); 
-                if (totalPages <= 1) throw new Error("Cannot delete the last remaining page."); 
-                sourceDoc.removePage(idx); 
-            } else if (id === 'extract') { 
-                const idx = parseInt(document.getElementById('pg-input').value) - 1; 
-                if (isNaN(idx) || idx < 0 || idx >= totalPages) throw new Error("Invalid page index."); 
-                const newDoc = await PDFDocument.create(); 
-                const [extracted] = await newDoc.copyPages(sourceDoc, [idx]); 
-                newDoc.addPage(extracted); 
-                sourceDoc = newDoc; 
-            } else if (id === 'reorder') { 
-                const newDoc = await PDFDocument.create(); 
-                const reverseIndices = Array.from({ length: totalPages }, (_, idx) => idx).reverse();
-                const pages = await newDoc.copyPages(sourceDoc, reverseIndices);
-                pages.forEach(p => newDoc.addPage(p));
-                sourceDoc = newDoc; 
-            } else if (id === 'watermark') { 
-                const text = document.getElementById('txt-input').value || "CONFIDENTIAL"; 
-                sourceDoc.getPages().forEach(p => { 
-                    const { width, height } = p.getSize(); 
-                    p.drawText(text, { x: width / 4, y: height / 2, size: 48, color: rgb(0.8, 0.8, 0.8), opacity: 0.3, rotate: degrees(45) }); 
-                }); 
-            } else if (id === 'numbers') { 
-                sourceDoc.getPages().forEach((p, i) => { 
-                    const { width } = p.getSize(); 
-                    p.drawText(`${i + 1} / ${totalPages}`, { x: width - 70, y: 30, size: 12, color: rgb(0, 0, 0) }); 
-                }); 
-            }
-            return new Blob([await sourceDoc.save()], { type: 'application/pdf' });
-        }
-    }
-
-    function activateWorkspace(id) {
-        if (AppState.isProcessing) return;
-        
-        const box = document.getElementById('tool-workspace-box');
-        const canvas = document.getElementById('canvas-content');
-        const tool = ToolsConfig[id];
-        const config = ColorMap[tool.color] || ColorMap['blue-600'];
-        
-        AppState.activeId = id;
-        box.style.opacity = '0';
-        box.style.transform = 'scale(0.98)';
-        
-        setTimeout(() => {
-            canvas.className = "text-left space-y-5";
-            canvas.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 ${config.bg} text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
-                        <i class="fa-solid ${tool.icon}"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-extrabold text-slate-900 leading-tight">${tool.name}</h2>
-                        <p class="text-xs text-slate-500">${tool.desc}</p>
-                    </div>
-                </div>
-                <hr class="border-slate-200/60">
-                ${tool.render(tool)}
-                <button id="execute-btn" class="w-full mt-4 ${config.bg} ${config.hover} text-white text-xs font-bold py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center">
-                    Execute ${tool.name}
-                </button>`;
-            
-            // Clean DOM event listeners to completely isolate execution scopes
-            document.getElementById('execute-btn').addEventListener('click', () => PDFEngine.execute(id));
-            
-            if (id === 'resizer') {
-                const fileEl = document.getElementById('active-file-input');
-                fileEl.addEventListener('change', () => {
-                    if (!fileEl.files || fileEl.files.length === 0) return;
-                    const file = fileEl.files[0];
-                    if (!file.type.startsWith('image/')) { AppUI.showToast("Please select a valid image.", 'error'); return; }
-                    const tempUrl = URL.createObjectURL(file);
-                    const tempImg = new Image();
-                    tempImg.onload = () => {
-                        document.getElementById('img-w').value = tempImg.width;
-                        document.getElementById('img-h').value = tempImg.height;
-                        URL.revokeObjectURL(tempUrl);
-                    };
-                    tempImg.src = tempUrl;
-                });
-            }
-
-            box.style.opacity = '1'; 
-            box.style.transform = 'scale(1)';
-            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 200);
-    }
-
-    // Set up standard declarative DOM initializers instead of global scope window bindings
-    document.addEventListener("DOMContentLoaded", () => {
-        const grid = document.getElementById('tools-grid');
-        Object.keys(ToolsConfig).forEach(key => {
-            const tool = ToolsConfig[key];
-            const card = document.createElement('a');
-            card.href = `#tool-${key}`;
-            card.className = `glass-panel ${tool.border} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition-all duration-300 group cursor-pointer border border-slate-100`;
-            
-            card.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (AppState.isProcessing) return;
-                activateWorkspace(key);
-                history.pushState(null, null, `#tool-${key}`);
-            });
 
             card.innerHTML = `
-                <div class="w-14 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm">
-                    <i class="fa-solid ${tool.icon}"></i>
+                <div class="absolute top-2 left-2 z-10">
+                    <input type="checkbox" checked class="item-selector-checkbox rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" data-index="${i}">
                 </div>
-                <div class="text-left space-y-0.5">
-                    <h3 class="font-bold text-slate-900 text-sm tracking-tight">${tool.name}</h3>
-                    <p class="text-slate-400 text-xs leading-tight">${tool.desc}</p>
-                </div>`;
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 z-10">
+                    <button class="bg-white p-1 rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-slate-900 rotation-trigger-btn" data-index="${i}" type="button"><i class="fa-solid fa-rotate-right text-[10px]"></i></button>
+                    <button class="bg-white p-1 rounded-md text-red-500 shadow-sm border border-slate-200 hover:bg-red-50 exclusion-trigger-btn" data-index="${i}" type="button"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                </div>
+                ${thumbnailHTML}
+                <div class="w-full text-center">
+                    <p class="text-[10px] font-semibold text-slate-700 truncate max-w-full">${file.name}</p>
+                    <p class="text-[9px] text-slate-400">${(file.size / 1024).toFixed(1)} KB</p>
+                </div>
+            `;
+
+            // Setup Drag and Drop events
+            card.addEventListener('dragstart', (e) => { AppState.draggedIndex = card.dataset.index; e.dataTransfer.effectAllowed = 'move'; });
+            card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('border-blue-500', 'bg-blue-50/20'); });
+            card.addEventListener('dragleave', () => { card.classList.remove('border-blue-500', 'bg-blue-50/20'); });
+            card.addEventListener('drop', (e) => {
+                e.preventDefault();
+                card.classList.remove('border-blue-500', 'bg-blue-50/20');
+                const targetIdx = parseInt(card.dataset.index);
+                const draggedIdx = parseInt(AppState.draggedIndex);
+                if (targetIdx !== draggedIdx) {
+                    const temp = AppState.uploadedFiles[draggedIdx];
+                    AppState.uploadedFiles.splice(draggedIdx, 1);
+                    AppState.uploadedFiles.splice(targetIdx, 0, temp);
+                    AppUI.refreshWorkspaceDOM(id);
+                }
+            });
+
+            grid.appendChild(card);
+        }
+
+        // Intercept functional context variables if PDF file metadata generation is required
+        if (files[0] && files[0].type === 'application/pdf' && ['split', 'rotate', 'del', 'extract', 'reorder'].includes(id)) {
+            try {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    const pdfDoc = await PDFDocument.load(this.result, { ignoreEncryption: true });
+                    const pagesCount = pdfDoc.getPageCount();
+                    grid.innerHTML = ''; // Rebuild by explicit single page indices mapping
+                    const baseFile = files[0];
+                    AppState.uploadedFiles = [];
+
+                    for(let p = 0; p < pagesCount; p++) {
+                        AppState.uploadedFiles.push({
+                            id: p,
+                            file: baseFile,
+                            pageIndex: p,
+                            selected: true,
+                            rotation: 0
+                        });
+
+                        const pageCard = document.createElement('div');
+                        pageCard.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between items-center relative group select-none cursor-grab active:cursor-grabbing";
+                        pageCard.setAttribute('draggable', 'true');
+                        pageCard.dataset.index = p;
+
+                        pageCard.innerHTML = `
+                            <div class="absolute top-2 left-2 z-10">
+                                <input type="checkbox" checked class="item-selector-checkbox rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" data-index="${p}">
+                            </div>
+                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 z-10">
+                                <button class="bg-white p-1 rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-slate-900 rotation-trigger-btn" data-index="${p}" type="button"><i class="fa-solid fa-rotate-right text-[10px]"></i></button>
+                                <button class="bg-white p-1 rounded-md text-red-500 shadow-sm border border-slate-200 hover:bg-red-50 exclusion-trigger-btn" data-index="${p}" type="button"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                            </div>
+                            <div class="w-full h-24 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-slate-400 mb-2 transition-transform duration-200" id="thumb-node-${p}">
+                                <i class="fa-solid fa-file-lines text-lg mb-1"></i>
+                                <span class="text-[10px] font-bold text-slate-500">Page ${p+1}</span>
+                            </div>
+                            <div class="w-full text-center">
+                                <p class="text-[10px] font-semibold text-slate-700 truncate max-w-full">Index Context: ${p+1}</p>
+                            </div>
+                        `;
+
+                        pageCard.addEventListener('dragstart', (e) => { AppState.draggedIndex = pageCard.dataset.index; });
+                        pageCard.addEventListener('dragover', (e) => { e.preventDefault(); pageCard.classList.add('border-blue-500', 'bg-blue-50/20'); });
+                        pageCard.addEventListener('dragleave', () => { pageCard.classList.remove('border-blue-500', 'bg-blue-50/20'); });
+                        pageCard.addEventListener('drop', (e) => {
+                            e.preventDefault();
+                            pageCard.classList.remove('border-blue-500', 'bg-blue-50/20');
+                            const targetIdx = parseInt(pageCard.dataset.index);
+                            const draggedIdx = parseInt(AppState.draggedIndex);
+                            if (targetIdx !== draggedIdx) {
+                                const temp = AppState.uploadedFiles[draggedIdx];
+                                AppState.uploadedFiles.splice(draggedIdx, 1);
+                                AppState.uploadedFiles.splice(targetIdx, 0, temp);
+                                AppUI.refreshWorkspaceDOM(id);
+                            }
+                        });
+
+                        grid.appendChild(pageCard);
+                    }
+                    AppUI.bindWorkspaceInteractions(id);
+                };
+                reader.readAsArrayBuffer(baseFile);
+            } catch(e) { console.error("Page analytical preprocessing broken", e); }
+        }
+
+        container.classList.remove('hidden');
+        AppUI.bindWorkspaceInteractions(id);
+    }
+
+    static refreshWorkspaceDOM(id) {
+        const grid = document.getElementById('preview-items-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        AppState.uploadedFiles.forEach((fileObj, index) => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between items-center relative group select-none cursor-grab active:cursor-grabbing";
+            card.setAttribute('draggable', 'true');
+            card.dataset.index = index;
+
+            let thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-slate-400 mb-2 transition-transform duration-200" style="transform: rotate(${fileObj.rotation}deg);" id="thumb-node-${index}"><i class="fa-solid ${fileObj.pageIndex !== undefined ? 'fa-file-lines' : 'fa-file-pdf'} text-xl"></i>${fileObj.pageIndex !== undefined ? `<span class="text-[10px] font-bold text-slate-500 mt-1">Page ${fileObj.pageIndex + 1}</span>` : ''}</div>`;
+            if (fileObj.file.type.startsWith('image/')) {
+                const url = URL.createObjectURL(fileObj.file);
+                thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center"><img src="${url}" class="max-h-full max-w-full object-contain transition-transform duration-200" style="transform: rotate(${fileObj.rotation}deg);" id="thumb-node-${index}"/></div>`;
+            }
+
+            card.innerHTML = `
+                <div class="absolute top-2 left-2 z-10">
+                    <input type="checkbox" ${fileObj.selected ? 'checked' : ''} class="item-selector-checkbox rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" data-index="${index}">
+                </div>
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 z-10">
+                    <button class="bg-white p-1 rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-slate-900 rotation-trigger-btn" data-index="${index}" type="button"><i class="fa-solid fa-rotate-right text-[10px]"></i></button>
+                    <button class="bg-white p-1 rounded-md text-red-500 shadow-sm border border-slate-200 hover:bg-red-50 exclusion-trigger-btn" data-index="${index}" type="button"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                </div>
+                ${thumbnailHTML}
+                <div class="w-full text-center">
+                    <p class="text-[10px] font-semibold text-slate-700 truncate max-w-full">${fileObj.pageIndex !== undefined ? `Page Custom Order` : fileObj.file.name}</p>
+                </div>
+            `;
+
+            card.addEventListener('dragstart', (e) => { AppState.draggedIndex = card.dataset.index; });
+            card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('border-blue-500', 'bg-blue-50/20'); });
+            card.addEventListener('dragleave', () => { card.classList.remove('border-blue-500', 'bg-blue-50/20'); });
+            card.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const targetIdx = parseInt(card.dataset.index);
+                const draggedIdx = parseInt(AppState.draggedIndex);
+                if (targetIdx !== draggedIdx) {
+                    const temp = AppState.uploadedFiles[draggedIdx];
+                    AppState.uploadedFiles.splice(draggedIdx, 1);
+                    AppState.uploadedFiles.splice(targetIdx, 0, temp);
+                    AppUI.refreshWorkspaceDOM(id);
+                }
+            });
+
             grid.appendChild(card);
         });
 
-        // Safe client side Deep Linking routing checks
-        const targetHash = window.location.hash.replace('#tool-', '');
-        if (targetHash && ToolsConfig[targetHash]) {
-            activateWorkspace(targetHash);
+        AppUI.bindWorkspaceInteractions(id);
+        AppUI.syncInputsWithWorkspaceContext(id);
+    }
+
+    static bindWorkspaceInteractions(id) {
+        document.querySelectorAll('.item-selector-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                AppState.uploadedFiles[idx].selected = e.target.checked;
+                AppUI.syncInputsWithWorkspaceContext(id);
+            });
+        });
+
+        document.querySelectorAll('.rotation-trigger-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.dataset.index);
+                AppState.uploadedFiles[idx].rotation = (AppState.uploadedFiles[idx].rotation + 90) % 360;
+                const node = document.getElementById(`thumb-node-${idx}`);
+                if(node) node.style.transform = `rotate(${AppState.uploadedFiles[idx].rotation}deg)`;
+            });
+        });
+
+        document.querySelectorAll('.exclusion-trigger-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.dataset.index);
+                AppState.uploadedFiles.splice(idx, 1);
+                AppUI.refreshWorkspaceDOM(id);
+                AppUI.showToast("Item context updated. Action reversible via re-upload.", "info");
+            });
+        });
+    }
+
+    static syncInputsWithWorkspaceContext(id) {
+        if (id === 'split' || id === 'extract' || id === 'del') {
+            const selectedIndices = AppState.uploadedFiles
+                .filter(f => f.selected)
+                .map(f => (f.pageIndex !== undefined ? f.pageIndex + 1 : f.id + 1));
+            const inputField = document.getElementById('pg-input');
+            if (inputField && selectedIndices.length > 0) {
+                inputField.value = selectedIndices.join(',');
+            }
         }
-    });
+    }
+} 
+
+class PDFEngine { 
+    static async execute(id) { 
+        if (AppState.isProcessing) return; 
+        const input = document.getElementById('active-file-input'); 
+        const btn = document.getElementById('execute-btn'); 
+        
+        // Extended compatibility check for uploaded workspace pipeline structures
+        if ((!input || !input.files || input.files.length === 0) && AppState.uploadedFiles.length === 0) { 
+            AppUI.showToast("Please upload a required file to begin.", "error"); 
+            return; 
+        } 
+
+        AppUI.setGlobalLock(true); 
+        const originalBtnText = btn.innerHTML; 
+        btn.disabled = true; 
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Processing Engine Execution...`; 
+        btn.classList.add('opacity-70', 'cursor-not-allowed'); 
+
+        try { 
+            let finalBlob = null; 
+            let filename = `Output_${id}.pdf`; 
+
+            if (id === 'resizer') { 
+                finalBlob = await this.processResizer(AppState.uploadedFiles[0]?.file || input.files[0]); 
+                filename = `Resized_Image.${document.getElementById('img-format').value.split('/')[1]}`; 
+            } else if (id === 'imgToPdf') { 
+                const workingFiles = AppState.uploadedFiles.filter(f => f.selected).map(f => f.file);
+                finalBlob = await this.processImagesToPdf(workingFiles.length > 0 ? workingFiles : input.files); 
+            } else if (id === 'merge') { 
+                const workingFiles = AppState.uploadedFiles.filter(f => f.selected).map(f => f.file);
+                finalBlob = await this.processMerge(workingFiles.length > 0 ? workingFiles : input.files); 
+            } else { 
+                const targetFile = AppState.uploadedFiles[0]?.file || input.files[0];
+                const fileBytes = await targetFile.arrayBuffer(); 
+                if (fileBytes.byteLength === 0) throw new Error("The uploaded file is empty."); 
+                const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true }); 
+                finalBlob = await this.processSinglePDF(id, pdfDoc); 
+                if (id === 'split') filename = `Split_Pages.zip`; 
+            } 
+
+            if (finalBlob) { 
+                const url = URL.createObjectURL(finalBlob); 
+                const a = document.createElement('a'); 
+                a.href = url; 
+                a.download = filename; 
+                document.body.appendChild(a); 
+                a.click(); 
+                document.body.removeChild(a); 
+                setTimeout(() => URL.revokeObjectURL(url), 250); 
+                AppUI.showToast("Operation completed successfully!"); 
+            } 
+        } catch (error) { 
+            console.error("[Processing Exception]", error); 
+            AppUI.showToast(error.message || "An error occurred during compilation.", 'error'); 
+        } finally { 
+            btn.disabled = false; 
+            btn.innerHTML = originalBtnText; 
+            btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
+            AppUI.setGlobalLock(false); 
+        } 
+    } 
+
+    static async processResizer(file) { 
+        const w = parseInt(document.getElementById('img-w').value); 
+        const h = parseInt(document.getElementById('img-h').value); 
+        const format = document.getElementById('img-format').value; 
+        const qualitySlider = document.getElementById('img-quality');
+        const quality = qualitySlider ? parseFloat(qualitySlider.value) : 0.92;
+
+        if (!w || !h || w <= 0 || h <= 0) throw new Error("Invalid dimensions specified."); 
+        const objectUrl = URL.createObjectURL(file); 
+        const img = await new Promise((resolve, reject) => { 
+            const imgEl = new Image(); 
+            imgEl.onload = () => resolve(imgEl); 
+            imgEl.onerror = () => reject(new Error("Failed to decode image data structure.")); 
+            imgEl.src = objectUrl; 
+        }); 
+
+        const canvas = document.createElement('canvas'); 
+        canvas.width = w; 
+        canvas.height = h; 
+        const ctx = canvas.getContext('2d', { alpha: format !== 'image/jpeg' }); 
+        if (format === 'image/jpeg') { 
+            ctx.fillStyle = "#FFFFFF"; 
+            ctx.fillRect(0, 0, w, h); 
+        } 
+        ctx.drawImage(img, 0, 0, w, h); 
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality)); 
+        URL.revokeObjectURL(objectUrl); 
+        canvas.width = 0; canvas.height = 0; 
+        return blob; 
+    } 
+
+    static async processImagesToPdf(files) { 
+        const doc = await PDFDocument.create(); 
+        const layoutSel = document.getElementById('img-layout-select')?.value || 'A4';
+        const gridSel = document.getElementById('img-grid-select')?.value || '1x1';
+        
+        let baseWidth = 595.28, baseHeight = 841.89; // Default A4
+        if (layoutSel === 'LETTER') { baseWidth = 612; baseHeight = 792; }
+        else if (layoutSel === 'CUSTOM') {
+            baseWidth = parseInt(document.getElementById('custom-layout-w')?.value) || 595;
+            baseHeight = parseInt(document.getElementById('custom-layout-h')?.value) || 841;
+        }
+
+        // Production-ready support mapping: Multi-images processing pipeline configurations
+        if (gridSel === '2x2' && files.length >= 4) {
+            // High UX Depth multi-grid engine scaling logic
+            let page = doc.addPage([baseWidth, baseHeight]);
+            const wPart = baseWidth / 2, hPart = baseHeight / 2;
+            for (let i = 0; i < files.length; i++) {
+                if (i > 0 && i % 4 === 0) page = doc.addPage([baseWidth, baseHeight]);
+                const bytes = await files[i].arrayBuffer();
+                let img = files[i].type === 'image/png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+                const quadIdx = i % 4;
+                const xOff = (quadIdx % 2) * wPart, yOff = baseHeight - (Math.floor(quadIdx / 2) + 1) * hPart;
+                page.drawImage(img, { x: xOff + 5, y: yOff + 5, width: wPart - 10, height: hPart - 10 });
+            }
+        } else {
+            for (let i = 0; i < files.length; i++) { 
+                const bytes = await files[i].arrayBuffer(); 
+                let img; 
+                if (files[i].type === 'image/png') img = await doc.embedPng(bytes); 
+                else if (files[i].type === 'image/jpeg' || files[i].type === 'image/jpg') img = await doc.embedJpg(bytes); 
+                else continue; 
+                const scale = Math.min(baseWidth / img.width, baseHeight / img.height); 
+                const sw = img.width * scale, sh = img.height * scale; 
+                const page = doc.addPage([baseWidth, baseHeight]); 
+                page.drawImage(img, { x: (baseWidth / 2) - (sw / 2), y: (baseHeight / 2) - (sh / 2), width: sw, height: sh }); 
+            } 
+        }
+        
+        const compressionToggle = document.getElementById('compression-toggle');
+        if (compressionToggle && compressionToggle.checked) {
+            // Structural programmatic optimization mapping flag
+            return new Blob([await doc.save({ useObjectStreams: true })], { type: 'application/pdf' });
+        }
+        return new Blob([await doc.save()], { type: 'application/pdf' }); 
+    } 
+
+    static async processMerge(files) { 
+        const doc = await PDFDocument.create(); 
+        for (let i = 0; i < files.length; i++) { 
+            const bytes = await files[i].arrayBuffer(); 
+            const src = await PDFDocument.load(bytes); 
+            const pages = await doc.copyPages(src, src.getPageIndices()); 
+            pages.forEach(p => doc.addPage(p)); 
+        } 
+        const compressionToggle = document.getElementById('compression-toggle');
+        if (compressionToggle && compressionToggle.checked) {
+            return new Blob([await doc.save({ useObjectStreams: true })], { type: 'application/pdf' });
+        }
+        return new Blob([await doc.save()], { type: 'application/pdf' }); 
+    } 
+
+    static async processSinglePDF(id, sourceDoc) { 
+        const totalPages = sourceDoc.getPageCount(); 
+        
+        // Extracted Multi-Page selection mapping parsing mechanics
+        const rangeInput = document.getElementById('pg-input')?.value || "";
+        let targetedIndices = [];
+        if (rangeInput.trim().length > 0) {
+            const blocks = rangeInput.split(',');
+            blocks.forEach(b => {
+                if(b.includes('-')) {
+                    const [start, end] = b.split('-').map(x => parseInt(x.trim()) - 1);
+                    if(!isNaN(start) && !isNaN(end)) {
+                        for(let r = start; r <= end; r++) if (r >= 0 && r < totalPages) targetedIndices.push(r);
+                    }
+                } else {
+                    const idx = parseInt(b.trim()) - 1;
+                    if(!isNaN(idx) && idx >= 0 && idx < totalPages) targetedIndices.push(idx);
+                }
+            });
+        }
+        
+        // Universal backup wrapper if custom workflow tracking data mapping is active
+        if (AppState.uploadedFiles.length > 0 && ['reorder', 'rotate', 'del', 'extract', 'split'].includes(id)) {
+            // Synchronize mapping arrays context safely
+            if (id === 'reorder') {
+                const reorderedDoc = await PDFDocument.create();
+                for (let k = 0; k < AppState.uploadedFiles.length; k++) {
+                    const wrapper = AppState.uploadedFiles[k];
+                    const [p] = await reorderedDoc.copyPages(sourceDoc, [wrapper.pageIndex]);
+                    if (wrapper.rotation !== 0) {
+                        p.setRotation(degrees((p.getRotation().angle + wrapper.rotation) % 360));
+                    }
+                    reorderedDoc.addPage(p);
+                }
+                return new Blob([await reorderedDoc.save()], { type: 'application/pdf' });
+            }
+        }
+
+        if (id === 'split') { 
+            const zip = new JSZip(); 
+            const executionSet = targetedIndices.length > 0 ? targetedIndices : Array.from({length: totalPages}, (_, i) => i);
+            for (let i = 0; i < executionSet.length; i++) { 
+                const targetIdx = executionSet[i];
+                const subDoc = await PDFDocument.create(); 
+                const [p] = await subDoc.copyPages(sourceDoc, [targetIdx]); 
+                subDoc.addPage(p); 
+                zip.file(`Page_${targetIdx + 1}.pdf`, await subDoc.save()); 
+            } 
+            return await zip.generateAsync({ type: "blob" }); 
+        } 
+
+        if (id === 'rotate') { 
+            const customAngle = parseInt(document.getElementById('custom-angle-select')?.value || "90");
+            if (targetedIndices.length > 0) {
+                targetedIndices.forEach(idx => {
+                    const p = sourceDoc.getPage(idx);
+                    p.setRotation(degrees((p.getRotation().angle + customAngle) % 360));
+                });
+            } else {
+                sourceDoc.getPages().forEach(p => p.setRotation(degrees((p.getRotation().angle + customAngle) % 360))); 
+            }
+        } else if (id === 'del') { 
+            const targetSet = targetedIndices.length > 0 ? targetedIndices : [parseInt(document.getElementById('pg-input').value) - 1];
+            // Safe mathematical sort from highest descending to avoid real-time positional shift faults
+            const sortedDesc = targetSet.filter(x => !isNaN(x) && x >= 0 && x < totalPages).sort((a,b) => b - a);
+            if (sortedDesc.length === 0) throw new Error("Invalid page index/range specified."); 
+            if (totalPages - sortedDesc.length <= 0) throw new Error("Cannot delete all remaining structural pages."); 
+            sortedDesc.forEach(idx => sourceDoc.removePage(idx));
+        } else if (id === 'extract') { 
+            const targetSet = targetedIndices.length > 0 ? targetedIndices : [parseInt(document.getElementById('pg-input').value) - 1];
+            if (targetSet.length === 0) throw new Error("Invalid target pages context.");
+            const newDoc = await PDFDocument.create(); 
+            const extractedPages = await newDoc.copyPages(sourceDoc, targetSet); 
+            extractedPages.forEach(p => newDoc.addPage(p));
+            sourceDoc = newDoc; 
+        } else if (id === 'watermark') { 
+            const text = document.getElementById('txt-input').value || "CONFIDENTIAL"; 
+            const fontSize = parseInt(document.getElementById('wm-size')?.value || "48");
+            const opacity = parseFloat(document.getElementById('wm-opacity')?.value || "0.3");
+            const position = document.getElementById('wm-pos')?.value || "center";
+            const rotationAngle = parseInt(document.getElementById('wm-rot')?.value || "45");
+            
+            sourceDoc.getPages().forEach(p => { 
+                const { width, height } = p.getSize(); 
+                let x = width / 4, y = height / 2;
+                if (position === 'top-left') { x = 50; y = height - 100; }
+                else if (position === 'top-right') { x = width - 200; y = height - 100; }
+                else if (position === 'bottom-left') { x = 50; y = 100; }
+                else if (position === 'bottom-right') { x = width - 200; y = 100; }
+                
+                p.drawText(text, { 
+                    x: x, 
+                    y: y, 
+                    size: fontSize, 
+                    color: rgb(0.8, 0.8, 0.8), 
+                    opacity: opacity, 
+                    rotate: degrees(rotationAngle) 
+                }); 
+            }); 
+        } else if (id === 'numbers') { 
+            const formatStr = document.getElementById('num-format')?.value || "Page X of Y";
+            const position = document.getElementById('num-pos')?.value || "bottom-right";
+            const startNum = parseInt(document.getElementById('num-start')?.value || "1");
+            const fontSize = parseInt(document.getElementById('num-size')?.value || "12");
+
+            sourceDoc.getPages().forEach((p, i) => { 
+                const { width, height } = p.getSize(); 
+                const activeIndexDisplay = i + startNum;
+                let displayString = formatStr.replace('X', activeIndexDisplay).replace('Y', totalPages);
+                if (formatStr === 'simple') displayString = `${activeIndexDisplay}`;
+                
+                let x = width - 70, y = 30;
+                if(position === 'bottom-center') { x = width / 2 - 20; y = 30; }
+                else if(position === 'bottom-left') { x = 40; y = 30; }
+                else if(position === 'top-center') { x = width / 2 - 20; y = height - 40; }
+                
+                p.drawText(displayString, { x: x, y: y, size: fontSize, color: rgb(0, 0, 0) }); 
+            }); 
+        } 
+        return new Blob([await sourceDoc.save()], { type: 'application/pdf' }); 
+    } 
+} 
+
+function activateWorkspace(id) { 
+    if (AppState.isProcessing) return; 
+    const box = document.getElementById('tool-workspace-box'); 
+    const canvas = document.getElementById('canvas-content'); 
+    const tool = ToolsConfig[id]; 
+    const config = ColorMap[tool.color] || ColorMap['blue-600']; 
+    AppState.activeId = id; 
+    
+    box.style.opacity = '0'; 
+    box.style.transform = 'scale(0.98)'; 
+    
+    setTimeout(() => { 
+        canvas.className = "text-left space-y-5"; 
+        canvas.innerHTML = ` 
+        <div class="flex items-center space-x-3"> 
+            <div class="w-10 h-10 ${config.bg} text-white rounded-xl flex items-center justify-center text-lg shadow-sm"> 
+                <i class="fa-solid ${tool.icon}"></i> 
+            </div> 
+            <div> 
+                <h2 class="text-lg font-extrabold text-slate-900 leading-tight">${tool.name}</h2> 
+                <p class="text-xs text-slate-500">${tool.desc}</p> 
+            </div> 
+        </div> 
+        <div id="global-progress" class="hidden w-full bg-slate-100 rounded-full h-1.5 dark:bg-slate-200 animate-pulse">
+            <div class="${config.bg} h-1.5 rounded-full" style="width: 45%"></div>
+        </div>
+        <hr class="border-slate-200/60"> 
+        ${tool.render(tool)} 
+        <button id="execute-btn" class="w-full mt-4 ${config.bg} ${config.hover} text-white text-xs font-bold py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center"> 
+            Execute & Download ${tool.name} 
+        </button>`; 
+
+        // Core Event Bindings 
+        document.getElementById('execute-btn').addEventListener('click', () => PDFEngine.execute(id)); 
+        
+        const fileZone = document.getElementById('drag-drop-zone');
+        const hiddenInput = document.getElementById('active-file-input');
+        if (fileZone && hiddenInput) {
+            fileZone.addEventListener('click', () => hiddenInput.click());
+            fileZone.addEventListener('dragover', (e) => { e.preventDefault(); fileZone.classList.add('bg-slate-100'); });
+            fileZone.addEventListener('dragleave', () => fileZone.classList.remove('bg-slate-100'));
+            fileZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileZone.classList.remove('bg-slate-100');
+                if (e.dataTransfer.files.length > 0) {
+                    hiddenInput.files = e.dataTransfer.files;
+                    AppUI.updateWorkspacePreviews(e.dataTransfer.files, id);
+                }
+            });
+            hiddenInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) AppUI.updateWorkspacePreviews(e.target.files, id);
+            });
+        }
+
+        // Feature Hooks & Specific Tool Interaction extensions
+        if (id === 'resizer') { 
+            const fileEl = document.getElementById('active-file-input'); 
+            const lockAspectCheckbox = document.getElementById('aspect-lock');
+            let originalRatio = 1;
+
+            fileEl.addEventListener('change', () => { 
+                if (!fileEl.files || fileEl.files.length === 0) return; 
+                const file = fileEl.files[0]; 
+                if (!file.type.startsWith('image/')) { 
+                    AppUI.showToast("Please select a valid image.", 'error'); 
+                    return; 
+                } 
+                const tempUrl = URL.createObjectURL(file); 
+                const tempImg = new Image(); 
+                tempImg.onload = () => { 
+                    document.getElementById('img-w').value = tempImg.width; 
+                    document.getElementById('img-h').value = tempImg.height; 
+                    originalRatio = tempImg.width / tempImg.height;
+                    URL.revokeObjectURL(tempUrl); 
+                }; 
+                tempImg.src = tempUrl; 
+            }); 
+
+            document.getElementById('img-w').addEventListener('input', (e) => {
+                if(lockAspectCheckbox && lockAspectCheckbox.checked && originalRatio) {
+                    document.getElementById('img-h').value = Math.round(e.target.value / originalRatio);
+                }
+            });
+        } 
+
+        box.style.opacity = '1'; 
+        box.style.transform = 'scale(1)'; 
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+    }, 200); 
+} 
+
+// Set up standard declarative DOM initializers instead of global scope window bindings 
+document.addEventListener("DOMContentLoaded", () => { 
+    const grid = document.getElementById('tools-grid'); 
+    if(!grid) return;
+    
+    Object.keys(ToolsConfig).forEach(key => { 
+        const tool = ToolsConfig[key]; 
+        const card = document.createElement('a'); 
+        card.href = `#tool-${key}`; 
+        card.className = `glass-panel ${tool.border || 'border-slate-100'} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition-all duration-300 group cursor-pointer border`; 
+        card.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            if (AppState.isProcessing) return; 
+            activateWorkspace(key); 
+            history.pushState(null, null, `#tool-${key}`); 
+        }); 
+        card.innerHTML = ` 
+        <div class="w-14 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm"> 
+            <i class="fa-solid ${tool.icon}"></i> 
+        </div> 
+        <div class="text-left space-y-0.5"> 
+            <h3 class="font-bold text-slate-900 text-sm tracking-tight">${tool.name}</h3> 
+            <p class="text-slate-400 text-xs leading-tight">${tool.desc}</p> 
+        </div>`; 
+        grid.appendChild(card); 
+    }); 
+
+    const targetHash = window.location.hash.replace('#tool-', ''); 
+    if (targetHash && ToolsConfig[targetHash]) { 
+        activateWorkspace(targetHash); 
+    } 
+}); 
+
+// Static configuration dictionary definitions serving explicit production workflows
+window.ToolsConfig = {
+    merge: {
+        name: "Merge PDF",
+        desc: "Combine multiple PDF files into one production document.",
+        color: "blue-600", icon: "fa-layer-group",
+        render: (t) => AppUI.renderFileInput(t, true) + `
+        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs mt-2">
+            <span class="font-semibold text-slate-700">Apply Stream Compression Optimization</span>
+            <input type="checkbox" id="compression-toggle" checked class="rounded text-blue-600">
+        </div>`
+    },
+    split: {
+        name: "Split PDF",
+        desc: "Extract specific pages or break pages into separate files.",
+        color: "emerald-600", icon: "fa-scissors",
+        render: (t) => AppUI.renderFileInput(t, false) + `
+        <div class="space-y-2 mt-2">
+            <label class="block text-xs font-bold text-slate-500 uppercase">Target Page Ranges / Selection Mapping</label>
+            <input type="text" id="pg-input" placeholder="e.g. 1-3, 5, 7-10" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>`
+    },
+    rotate: {
+        name: "Rotate PDF",
+        desc: "Adjust structural landscape or portrait rotations.",
+        color: "purple-600", icon: "fa-rotate",
+        render: (t) => AppUI.renderFileInput(t, false) + `
+        <div class="space-y-2 mt-2">
+            <label class="block text-xs font-bold text-slate-500 uppercase">Custom Angle Increment</label>
+            <select id="custom-angle-select" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="90">90 Degrees Clockwise</option>
+                <option value="180">180 Degrees Flip</option>
+                <option value="270">270 Degrees Counter-Clockwise</option>
+            </select>
+            <input type="hidden" id="pg-input" placeholder="All Pages">
+        </div>`
+    },
+    del: {
+        name: "Delete Pages",
+        desc: "Strip unwanted structural components or empty index layers.",
+        color: "red-500", icon: "fa-trash-can",
+        render: (t) => AppUI.renderFileInput(t, false) + `
+        <div class="space-y-2 mt-2">
+            <label class="block text-xs font-bold text-slate-500 uppercase">Pages to Delete</label>
+            <input type="text" id="pg-input" placeholder="e.g. 2, 4-6" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500">
+        </div>`
+    },
+    extract: {
+        name: "Extract Pages",
+        desc: "Isolate precise ranges into standalone compilation states.",
+        color: "amber-500", icon: "fa-folder-open",
+        render: (t) => AppUI.renderFileInput(t, false) + `
+        <div class="space-y-2 mt-2">
+            <label class="block text-xs font-bold text-slate-500 uppercase">Pages to Extract</label>
+            <input type="text" id="pg-input" placeholder="e.g. 1, 3, 5-7" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>`
+    },
+    reorder: {
+        name: "Reorder Pages",
+        desc: "Drag and drop sequence structural transformations safely.",
+        color: "orange-500", icon: "fa-arrow-down-z-a",
+        render: (t) => AppUI.renderFileInput(t, false)
+    },
+    watermark: {
+        name: "Watermark PDF",
+        desc: "Inject anti-piracy text security wrappers directly.",
+        color: "pink-600", icon: "fa-stamp",
+        render: (t) => AppUI.renderFileInput(t, false) + `
+        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Watermark Core Text</label>
+                <input type="text" id="txt-input" value="CONFIDENTIAL" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Font Size</label>
+                    <input type="number" id="wm-size" value="48" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Position Variant</label>
+                    <select id="wm-pos" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                        <option value="center">Centered Alignment</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="bottom-right">Bottom Right</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Opacity Scale</label>
+                    <input type="range" id="wm-opacity" min="0.1" max="1" step="0.1" value="0.3" class="w-full mt-2">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Rotation angle</label>
+                    <input type="number" id="wm-rot" value="45" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+            </div>
+        </div>`
+    },
+    numbers: {
+        name: "Page Numbers",
+        desc: "Stamp professional unified pagination numbering protocols.",
+        color: "cyan-500", icon: "fa-list-ol",
+        render: (t) => AppUI.renderFileInput(t, false) + `
+        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Format Layout</label>
+                    <select id="num-format" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                        <option value="Page X of Y">Page X of Y (Advanced)</option>
+                        <option value="simple">X (Numeric Index Only)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Placement Context</label>
+                    <select id="num-pos" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                        <option value="bottom-right">Bottom Right Corner</option>
+                        <option value="bottom-center">Bottom Centered</option>
+                        <option value="bottom-left">Bottom Left Corner</option>
+                        <option value="top-center">Top Centered</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Starting Number</label>
+                    <input type="number" id="num-start" value="1" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Font Size</label>
+                    <input type="number" id="num-size" value="12" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+            </div>
+        </div>`
+    },
+    imgToPdf: {
+        name: "Image to PDF",
+        desc: "Convert lossless structural photography or documents safely.",
+        color: "teal-500", icon: "fa-file-image",
+        render: (t) => AppUI.renderFileInput(t, true, "image/*") + `
+        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Page Layout</label>
+                    <select id="img-layout-select" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                        <option value="A4">A4 Standard Standardized</option>
+                        <option value="LETTER">Letter Dimensional Layout</option>
+                        <option value="CUSTOM">Custom Sized Setup Context</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grid Pattern (Images per Page)</label>
+                    <select id="img-grid-select" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                        <option value="1x1">1 Image Per Page (Standard)</option>
+                        <option value="2x2">2x2 Grid Layout (Batch Consolidation)</option>
+                    </select>
+                </div>
+            </div>
+            <div id="custom-layout-dims" class="grid grid-cols-2 gap-3 hidden">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Width (px)</label>
+                    <input type="number" id="custom-layout-w" value="595" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Height (px)</label>
+                    <input type="number" id="custom-layout-h" value="841" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+            </div>
+        </div>`
+    },
+    resizer: {
+        name: "Image Resizer",
+        desc: "Recalibrate dimensional data layers on responsive targets.",
+        color: "blue-700", icon: "fa-compress",
+        render: (t) => AppUI.renderFileInput(t, false, "image/*") + `
+        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Width Axis (px)</label>
+                    <input type="number" id="img-w" placeholder="Width" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Height Axis (px)</label>
+                    <input type="number" id="img-h" placeholder="Height" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-xs p-1">
+                <span class="font-semibold text-slate-600">Lock Proportional Aspect Ratio</span>
+                <input type="checkbox" id="aspect-lock" checked class="rounded text-blue-700">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Output Encoding Format</label>
+                    <select id="img-format" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+                        <option value="image/jpeg">JPEG Standard Compression</option>
+                        <option value="image/png">PNG Alpha Transparency</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quality Compression Slider</label>
+                    <input type="range" id="img-quality" min="0.5" max="1" step="0.05" value="0.92" class="w-full mt-3">
+                </div>
+            </div>
+        </div>`
+    }
+};
+
 })();
