@@ -1,86 +1,499 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <title>Privacy Policy | PDF Tool Expert</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | PDFExpert - 100% Secure Client-Side PDF Tools</title>
+    
+    <!-- SEO & Meta Tags -->
+    <meta name="description" content="Read the comprehensive Privacy Policy for PDFExpert. Learn how we protect your data with 100% client-side processing, meaning your files never leave your device.">
+    <meta name="keywords" content="Privacy Policy, PDFExpert, Data Protection, Client-Side Processing, Secure PDF Tools, GDPR, CCPA, CPRA, LGPD">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="PDFExpert">
+    <meta name="theme-color" content="#ffffff">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://pdfexpert.xyz/privacy-policy">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="Privacy Policy | PDFExpert">
+    <meta property="og:description" content="Discover how PDFExpert ensures your absolute privacy with 100% secure, browser-based PDF processing. Your files are never uploaded to our servers.">
+    <meta property="og:url" content="https://pdfexpert.xyz/privacy-policy">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PDFExpert">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Privacy Policy | PDFExpert">
+    <meta name="twitter:description" content="Discover how PDFExpert ensures your privacy with 100% secure, browser-based PDF processing.">
+
+    <!-- Schema.org WebPage & Organization JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://pdfexpert.xyz/#organization",
+          "name": "PDFExpert",
+          "url": "https://pdfexpert.xyz",
+          "description": "Provider of modern, 100% client-side browser-based PDF tools."
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://pdfexpert.xyz/privacy-policy/#webpage",
+          "url": "https://pdfexpert.xyz/privacy-policy",
+          "name": "Privacy Policy - PDFExpert",
+          "isPartOf": { "@id": "https://pdfexpert.xyz/#organization" },
+          "description": "Privacy Policy for PDFExpert outlining data collection, AdSense cookies, and 100% client-side processing guarantees.",
+          "inLanguage": "en-US",
+          "datePublished": "2026-06-30T00:00:00+00:00",
+          "dateModified": "2026-06-30T00:00:00+00:00"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "item": {
+                "@id": "https://pdfexpert.xyz/",
+                "name": "Home"
+              }
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "item": {
+                "@id": "https://pdfexpert.xyz/privacy-policy",
+                "name": "Privacy Policy"
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <!-- CSS Styling (WCAG 2.2 AA Compliant) -->
+    <style>
+        :root {
+            /* WCAG AA compliant color palette */
+            --primary-color: #0f172a;       /* Dark slate for headings */
+            --accent-color: #1d4ed8;        /* Accessible blue for links */
+            --accent-hover: #1e3a8a;        /* Darker blue for hover states */
+            --text-main: #334155;           /* Slate 700 for high readability */
+            --text-muted: #475569;          /* Slate 600 for meta text */
+            --bg-body: #f1f5f9;             /* Slate 100 */
+            --bg-container: #ffffff;
+            --border-color: #cbd5e1;        /* Slate 300 */
+            --highlight-bg: #eff6ff;        /* Blue 50 */
+            --highlight-border: #3b82f6;    /* Blue 500 */
+            --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --focus-ring: 3px solid #60a5fa;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.7;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Accessibility: Skip link */
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 0;
+            background: var(--primary-color);
+            color: #ffffff;
+            padding: 12px 24px;
+            z-index: 9999;
+            text-decoration: none;
+            font-weight: 600;
+            transition: top 0.2s ease-in-out;
+        }
+
+        .skip-link:focus {
+            top: 0;
+            outline: var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 3rem auto;
+            background-color: var(--bg-container);
+            padding: 3.5rem 4rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        }
+
+        header {
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .meta-dates {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.75rem;
+            margin-top: 3.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            scroll-margin-top: 2rem;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            font-size: 1.35rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p, li {
+            font-size: 1.05rem;
+            margin-bottom: 1.25rem;
+        }
+
+        ul, ol {
+            padding-left: 1.75rem;
+            margin-bottom: 1.75rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+            transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+        }
+
+        a:hover, a:focus {
+            color: var(--accent-hover);
+            text-decoration-thickness: 2px;
+        }
+
+        a:focus-visible {
+            outline: var(--focus-ring);
+            outline-offset: 3px;
+            border-radius: 2px;
+        }
+
+        .toc-box {
+            background-color: var(--bg-body);
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 3rem;
+        }
+
+        .toc-box h2 {
+            margin-top: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 1.25rem;
+        }
+
+        .toc-box ol {
+            list-style-type: decimal;
+            padding-left: 1.5rem;
+            column-count: 2;
+            column-gap: 2rem;
+            margin-bottom: 0;
+        }
+
+        .toc-box li {
+            margin-bottom: 0.5rem;
+            break-inside: avoid;
+        }
+
+        .highlight-notice {
+            background-color: var(--highlight-bg);
+            border-left: 5px solid var(--highlight-border);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0 8px 8px 0;
+            color: #1e40af; /* High contrast text */
+            font-weight: 500;
+        }
+
+        .highlight-notice strong {
+            color: #1e3a8a;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            padding-top: 2.5rem;
+            padding-bottom: 2.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--bg-body);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 2rem 1.5rem;
+                border-radius: 8px;
+            }
+            .toc-box ol {
+                column-count: 1;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .meta-dates {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+        }
+    </style>
 </head>
+<body>
 
-<body class="bg-slate-50 text-slate-800">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
-<div class="max-w-4xl mx-auto px-6 py-12">
+    <main class="container" id="main-content">
+        <header>
+            <h1>Privacy Policy</h1>
+            <div class="meta-dates">
+                <span><strong>Effective Date:</strong> June 30, 2026</span>
+                <span><strong>Last Updated:</strong> June 30, 2026</span>
+            </div>
+            <p>Welcome to <strong>PDFExpert</strong> (<a href="https://pdfexpert.xyz">https://pdfexpert.xyz</a>). We provide modern, browser-based PDF and image manipulation tools. This Enterprise Privacy Policy outlines our data processing practices, strict commitment to client-side data security, and your privacy rights under global regulations.</p>
+        </header>
 
-    <h1 class="text-3xl font-extrabold mb-6 text-blue-600">
-        Privacy Policy
-    </h1>
+        <nav class="toc-box" aria-label="Table of Contents">
+            <h2>Table of Contents</h2>
+            <ol>
+                <li><a href="#client-side-processing">Client-Side Processing Guarantee</a></li>
+                <li><a href="#information-we-do-not-collect">Information We Do NOT Collect</a></li>
+                <li><a href="#information-we-collect">Information We Collect</a></li>
+                <li><a href="#cookies-policy">Cookies Policy</a></li>
+                <li><a href="#google-adsense">Google AdSense & Consent</a></li>
+                <li><a href="#third-party-services">Third-Party Services</a></li>
+                <li><a href="#security-measures">Data Security Measures</a></li>
+                <li><a href="#data-retention">Data Retention</a></li>
+                <li><a href="#global-privacy">Global Privacy Compliance</a></li>
+                <li><a href="#childrens-privacy">Children's Privacy (COPPA)</a></li>
+                <li><a href="#changes">Changes to This Policy</a></li>
+                <li><a href="#contact">Contact Information</a></li>
+            </ol>
+        </nav>
 
-    <p class="mb-4 text-sm text-slate-600">
-        Last updated: June 2026
-    </p>
+        <section id="client-side-processing">
+            <h2>1. Client-Side Processing Guarantee</h2>
+            <div class="highlight-notice">
+                <strong>Zero-Upload Architecture</strong>
+                PDFExpert operates entirely within your web browser. <strong>Your files never leave your device.</strong>
+            </div>
+            <p>We engineered PDFExpert prioritizing your absolute privacy. When you merge, split, rotate, watermark, extract, or convert files on our platform, the processing occurs directly in your local environment using client-side JavaScript. Specifically:</p>
+            <ul>
+                <li><strong>No Server-Side Processing:</strong> Your files are never transmitted over the internet to our servers.</li>
+                <li><strong>No Cloud Storage:</strong> We do not utilize cloud buckets, databases, or temporary server storage for your documents.</li>
+                <li><strong>Browser Memory Only:</strong> Files are parsed securely in your browser's local memory (RAM). Once you close your browser tab, the files instantly and permanently disappear from memory.</li>
+                <li><strong>No Employee Access:</strong> Because no files are uploaded, it is physically impossible for PDFExpert employees, contractors, or third parties to access, intercept, or view your documents.</li>
+                <li><strong>Strict Local Context:</strong> The website cannot read any files on your computer unless you explicitly select them via the secure operating system file picker.</li>
+            </ul>
+        </section>
 
-    <div class="space-y-6 text-sm leading-relaxed">
+        <section id="information-we-do-not-collect">
+            <h2>2. Information We Do NOT Collect</h2>
+            <p>In accordance with the principle of data minimization, we strictly avoid collecting sensitive user information. We absolutely do <strong>not</strong> collect, process, or store:</p>
+            <ul>
+                <li><strong>File Contents:</strong> The text, images, metadata, annotations, or structured data inside your PDFs or image files.</li>
+                <li><strong>Personal Identity Data:</strong> Names, physical addresses, email addresses, phone numbers, or account credentials (as our service operates securely without requiring user accounts).</li>
+                <li><strong>Payment Information:</strong> Financial data or credit card numbers, as our core tools are free to use.</li>
+            </ul>
+        </section>
 
-        <p>
-            Welcome to PDF Tool Expert. Your privacy is very important to us. This Privacy Policy explains how we handle your information when you use our website.
-        </p>
+        <section id="information-we-collect">
+            <h2>3. Information We Collect</h2>
+            <p>To ensure website security, operational stability, and monetization, we collect strictly limited metadata. This data is segregated from your file processing:</p>
+            <ul>
+                <li><strong>Technical Web Hosting Logs:</strong> When you access the website, our standard hosting infrastructure automatically receives basic network requests. This includes your IP address, browser type (User-Agent), referring URL, date/time stamp, and requested pages. This is standard for all internet traffic and is used solely for DDoS prevention and routing.</li>
+                <li><strong>Advertising & Consent Data:</strong> Information collected via cookies by our advertising partners (such as Google AdSense) to serve advertisements and manage your consent preferences.</li>
+            </ul>
+        </section>
 
-        <h2 class="text-lg font-bold">1. Information We Collect</h2>
-        <p>
-            We do not collect, store, or share any personal data from our users. All file processing (PDF and images) is done directly in your browser.
-        </p>
+        <section id="cookies-policy">
+            <h2>4. Cookies Policy</h2>
+            <p>We use cookies and similar local storage technologies to manage your preferences and display advertisements. In compliance with the ePrivacy Directive, we classify our cookies as follows:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Category</th>
+                        <th scope="col">Purpose</th>
+                        <th scope="col">Type / Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Strictly Necessary</strong></td>
+                        <td>Required for the website to function (e.g., security protocols, content delivery routing). Cannot be disabled.</td>
+                        <td>Session & Persistent</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Functional</strong></td>
+                        <td>Browser Local Storage used exclusively to remember your UI preferences (e.g., Dark Mode). Kept solely on your device.</td>
+                        <td>Local Storage (Device only)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Consent & Advertising</strong></td>
+                        <td>Used by third-party vendors (Google) to serve ads, track ad performance, and remember your privacy consent choices.</td>
+                        <td>Persistent (Subject to Consent)</td>
+                    </tr>
+                </tbody>
+            </table>
 
-        <h2 class="text-lg font-bold">2. File Security</h2>
-        <p>
-            Your files are processed locally on your device. We do not upload your files to any server. Therefore, your files remain completely private and secure.
-        </p>
+            <h3>Managing Your Cookies</h3>
+            <p>You have full control over non-essential cookies. You can revoke consent at any time via the consent banner link in our footer, or configure your web browser to block third-party cookies.</p>
+        </section>
 
-        <h2 class="text-lg font-bold">3. Cookies</h2>
-        <p>
-            We may use basic cookies to improve user experience and website performance. These cookies do not contain personal information.
-        </p>
+        <section id="google-adsense">
+            <h2>5. Google AdSense & Consent Mode v2</h2>
+            <p>PDFExpert uses Google AdSense to serve advertisements, allowing us to maintain the platform free of charge. We strictly adhere to the <strong>Google EU User Consent Policy</strong> and implement <strong>Google Consent Mode v2</strong>.</p>
+            
+            <h3>Google Advertising Cookies and Third-Party Vendors</h3>
+            <ul>
+                <li>Third-party vendors, including Google, use cookies to serve ads based on your prior visits to our website or other websites on the internet.</li>
+                <li>Google's use of advertising cookies enables it and its partners to serve ads to our users based on their visit to our sites and/or other sites on the internet.</li>
+                <li>Ads may be personalized or non-personalized, depending on the consent preferences you select upon visiting the site.</li>
+            </ul>
 
-        <h2 class="text-lg font-bold">4. Third-Party Services</h2>
-        <p>
-            We may use third-party services such as Google AdSense to display advertisements. These services may use cookies to show relevant ads.
-        </p>
+            <h3>User Controls and Opt-Out</h3>
+            <p>You may opt out of personalized advertising at any time by visiting <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">Google Ads Settings</a>. Alternatively, you can opt out of a third-party vendor's use of cookies for personalized advertising by visiting <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer">www.aboutads.info</a>.</p>
 
-        <h2 class="text-lg font-bold">5. Google AdSense</h2>
-        <p>
-            Google may use cookies (including DART cookies) to serve ads based on your visit to this website and other websites on the internet.
-            You can opt out of personalized advertising by visiting Google Ads Settings.
-        </p>
+            <h3>European Economic Area (EEA) and UK Users</h3>
+            <p>If you are located in the EEA or the UK, we use a certified Consent Management Platform (CMP) to request your explicit consent before setting non-essential advertising cookies or serving personalized ads, strictly adhering to Google's Consent Mode v2 standards.</p>
+        </section>
 
-        <h2 class="text-lg font-bold">6. External Links</h2>
-        <p>
-            Our website may contain links to other websites. We are not responsible for the privacy practices of those websites.
-        </p>
+        <section id="third-party-services">
+            <h2>6. Third-Party Services</h2>
+            <p>We limit external integrations strictly to essential infrastructure and monetization providers. We do not invent or use unnecessary third-party tracking. Our current integrations are limited to:</p>
+            <ul>
+                <li><strong>Web Hosting Infrastructure:</strong> To serve the static HTML, CSS, and JavaScript files that make up our application to your browser securely.</li>
+                <li><strong>Google AdSense:</strong> For serving advertisements as described in Section 5.</li>
+            </ul>
+            <p>These providers only have access to standard HTTP request data (like IP addresses) necessary to deliver their specific services and are prohibited from accessing your locally processed files.</p>
+        </section>
 
-        <h2 class="text-lg font-bold">7. Children’s Privacy</h2>
-        <p>
-            Our services are safe for general audiences. We do not knowingly collect data from children under 13.
-        </p>
+        <section id="security-measures">
+            <h2>7. Data Security Measures</h2>
+            <p>Our security model is built on client-side execution, but we implement robust enterprise-grade security headers to protect the delivery of our code:</p>
+            <ul>
+                <li><strong>HTTPS & TLS Encryption:</strong> All website traffic is forced over secure, encrypted Transport Layer Security (TLS) connections, preventing Man-in-the-Middle (MitM) attacks during code delivery.</li>
+                <li><strong>Browser Sandboxing:</strong> Our JavaScript executes strictly within the secure boundaries of your modern web browser's sandbox environment.</li>
+                <li><strong>Content Security Policy (CSP):</strong> We utilize strict CSP headers to mitigate Cross-Site Scripting (XSS) and data injection attacks.</li>
+                <li><strong>X-Content-Type-Options:</strong> Configured to `nosniff` to prevent MIME-type confusion attacks.</li>
+                <li><strong>Referrer-Policy & Permissions-Policy:</strong> Implemented to restrict the sharing of URL referrers and to deny the application access to unnecessary device APIs (like cameras or microphones).</li>
+                <li><strong>Frame Protection (X-Frame-Options):</strong> Configured to prevent our site from being embedded maliciously in iframes (Clickjacking protection).</li>
+            </ul>
+        </section>
 
-        <h2 class="text-lg font-bold">8. Changes to This Policy</h2>
-        <p>
-            We may update this Privacy Policy from time to time. Any changes will be posted on this page.
-        </p>
+        <section id="data-retention">
+            <h2>8. Data Retention</h2>
+            <ul>
+                <li><strong>Document Data:</strong> 0 seconds. File data exists exclusively in your device's volatile memory (RAM) and is purged instantly when the process completes or the browser closes.</li>
+                <li><strong>Server Logs:</strong> Standard infrastructure logs (IP addresses) are rotated automatically and permanently deleted within 14 to 30 days.</li>
+                <li><strong>Consent Data:</strong> Managed strictly by the CMP platform according to your regional legal requirements (typically valid for 6 to 12 months before reprompting).</li>
+            </ul>
+        </section>
 
-        <h2 class="text-lg font-bold">9. Contact Us</h2>
-        <p>
-            If you have any questions about this Privacy Policy, you can contact us at:
-            <br><br>
-            <b>Email:</b> support@pdftoolexpert.com
-        </p>
+        <section id="global-privacy">
+            <h2>9. Global Privacy Compliance</h2>
+            
+            <h3>GDPR & UK GDPR (European Union & United Kingdom)</h3>
+            <p>We process limited personal data (IP addresses and ad cookies) as a Data Controller. Because we do not upload files, we are not a Data Processor of your documents. Processing of ad cookies relies on your <strong>explicit consent</strong>. Processing of security logs relies on our <strong>legitimate interest</strong> to protect our infrastructure. You hold the right to Access, Rectification, Erasure, Restriction, and Data Portability. To exercise the right to erasure, simply clear your browser's cookies and local storage.</p>
 
-    </div>
+            <h3>CCPA / CPRA (California Residents)</h3>
+            <p>We do not "sell" your personal information in the traditional sense, nor do we collect identifiable files. However, sharing data with Google AdSense for targeted advertising may constitute "sharing" under the CPRA. You possess the Right to Know, Right to Delete, Right to Correct, and the Right to Opt-Out of Cross-Context Behavioral Advertising via our consent banner or global privacy controls.</p>
 
-    <div class="mt-10 text-xs text-slate-400">
-        © 2026 PDF Tool Expert. All rights reserved.
-    </div>
+            <h3>LGPD (Brazil) & PIPEDA (Canada)</h3>
+            <p>In accordance with the Lei Geral de Proteção de Dados (LGPD) and the Personal Information Protection and Electronic Documents Act (PIPEDA), we apply strict data minimization principles. We do not collect or transfer your documents, and any advertising data processing is governed by informed consent where required.</p>
+        </section>
 
-</div>
+        <section id="childrens-privacy">
+            <h2>10. Children's Privacy (COPPA)</h2>
+            <p>PDFExpert strictly complies with the Children's Online Privacy Protection Act (COPPA) and international equivalents. Our services are not directed at, nor do we knowingly collect or solicit personal information from, children under the age of 13 (or 16 in the EU/UK). If you believe we have inadvertently collected information from a minor, please contact us immediately for deletion.</p>
+        </section>
+
+        <section id="changes">
+            <h2>11. Changes to This Policy</h2>
+            <p>We may update this Privacy Policy to reflect changes in global privacy legislation, technical updates, or AdSense policy modifications. The "Last Updated" date at the top of this document will reflect the most current version. We encourage users to review this page periodically.</p>
+        </section>
+
+        <section id="contact">
+            <h2>12. Contact Information</h2>
+            <p>If you have any questions, concerns, or legal inquiries regarding our privacy practices, please contact our privacy compliance team:</p>
+            <ul>
+                <li><strong>Website:</strong> <a href="https://pdfexpert.xyz">https://pdfexpert.xyz</a></li>
+                <li><strong>Email:</strong> privacy@pdfexpert.xyz</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container" style="box-shadow: none; padding: 1rem; margin-top: 0; background: transparent;">
+            <p>&copy; 2026 PDFExpert. All rights reserved.</p>
+            <p>Engineered for Absolute Privacy &mdash; 100% Client-Side Processing.</p>
+        </div>
+    </footer>
 
 </body>
 </html>
