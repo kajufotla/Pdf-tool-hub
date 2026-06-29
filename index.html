@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"> 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
     <link rel="dns-prefetch" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <title>Free Online PDF Tools: Merge, Split, and Convert Securely</title> 
     <meta name="description" content="Manage documents effortlessly with our modern, client-side PDF tools. Instantly merge, split, and convert PDFs locally in your browser. 100% secure, offline, and free." /> 
@@ -37,14 +38,40 @@
     } </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"></noscript>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
-        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            scroll-behavior: smooth; 
+            overscroll-behavior-y: none;
+        }
+        
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+            border: 1px solid rgba(226, 232, 240, 0.8); 
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: transform, backdrop-filter;
+            backface-visibility: hidden;
+        }
+        
+        .content-section { contain: content; }
+        
+        .gpu-accelerate { transform: translateZ(0); will-change: transform, opacity; }
+        .will-change-opacity { will-change: opacity; transform: translateZ(0); }
+        
         .pt-safe { padding-top: env(safe-area-inset-top); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -54,6 +81,9 @@
     </style>
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <div class="hidden border-red-300 bg-red-50 hover:bg-red-100 text-red-500 bg-red-500 focus:ring-red-500 border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-600 bg-blue-600 focus:ring-blue-600 text-blue-700 bg-blue-700 focus:ring-blue-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 bg-emerald-600 focus:ring-emerald-500 border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-600 bg-purple-600 focus:ring-purple-500 border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-500 bg-amber-500 focus:ring-amber-500 border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-500 bg-orange-500 focus:ring-orange-500 border-pink-300 bg-pink-50 hover:bg-pink-100 text-pink-600 bg-pink-600 focus:ring-pink-600 border-cyan-300 bg-cyan-50 hover:bg-cyan-100 text-cyan-500 bg-cyan-500 focus:ring-cyan-500 border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-500 bg-teal-500 focus:ring-teal-500 text-red-400 hover:text-red-600"></div>
+
     <nav class="pt-safe sticky top-0 z-40 w-full glass-panel shadow-sm">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-2 text-2xl font-extrabold text-blue-600 tracking-tight">
@@ -62,9 +92,9 @@
             </div>
             
             <div class="hidden md:flex items-center space-x-8 font-medium text-slate-600 text-sm">
-                <a href="#" class="text-blue-600 border-b-2 border-blue-600 pb-1">Home</a>
-                <a href="#about" class="hover:text-blue-600 transition">About Tools</a>
-                <a href="#faq-section" class="hover:text-blue-600 transition">FAQs</a>
+                <a href="index.html" class="text-blue-600 border-b-2 border-blue-600 pb-1">Home</a>
+                <a href="index.html#about" class="hover:text-blue-600 transition">About Tools</a>
+                <a href="index.html#faq-section" class="hover:text-blue-600 transition">FAQs</a>
                 <a href="privacy.html" class="hover:text-blue-600 transition">Privacy</a>
             </div>
             
@@ -77,7 +107,7 @@
     </nav>
 
     <main class="flex-grow">
-        <header class="max-w-7xl mx-auto px-6 pt-16 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <header class="max-w-7xl mx-auto px-6 pt-16 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center content-section">
             <div class="lg:col-span-6 space-y-6" id="hero-workspace">
                 <div class="space-y-4">
                     <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
@@ -102,7 +132,7 @@
             </div>
 
             <div class="lg:col-span-6 flex justify-center relative">
-                <div class="w-full max-w-lg glass-panel shadow-xl rounded-3xl p-8 transition-all duration-300 transform" id="tool-workspace-box">
+                <div class="w-full max-w-lg glass-panel shadow-xl rounded-3xl p-8 transition duration-300 transform gpu-accelerate" id="tool-workspace-box">
                     <div class="flex items-center space-x-2 mb-6">
                         <span class="w-3 h-3 rounded-full bg-red-400"></span>
                         <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
@@ -110,7 +140,7 @@
                     </div>
                     
                     <div id="canvas-content" class="text-center py-8 space-y-4">
-                        <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner animate-pulse">
+                        <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner animate-pulse will-change-opacity">
                             <i class="fa-solid fa-wand-magic-sparkles"></i>
                         </div>
                         <h2 class="text-xl font-bold text-slate-800">Select a Module</h2>
@@ -120,16 +150,16 @@
             </div>
         </header>
 
-        <section id="our-tools" class="max-w-7xl mx-auto px-6 py-12 border-t border-slate-200/50">
+        <section id="our-tools" class="max-w-7xl mx-auto px-6 py-12 border-t border-slate-200/50 content-section">
             <div class="text-center space-y-2 mb-12">
                 <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Our Premium Utility Modules</h2>
                 <p class="text-sm text-slate-500">Select a tool to start processing your files securely.</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="tools-grid">
-                </div>
+            </div>
         </section>
 
-        <section id="about" class="max-w-7xl mx-auto px-6 py-16 border-t border-slate-200/50 bg-white rounded-3xl my-8 shadow-sm">
+        <section id="about" class="max-w-7xl mx-auto px-6 py-16 border-t border-slate-200/50 bg-white rounded-3xl my-8 shadow-sm content-section">
             <div class="max-w-4xl mx-auto text-center space-y-6">
                 <h2 class="text-3xl font-extrabold text-slate-900">Why Choose Our Client-Side PDF Editor?</h2>
                 <p class="text-slate-600 leading-relaxed text-left md:text-center">
@@ -155,7 +185,7 @@
             </div>
         </section>
 
-        <section id="faq-section" class="max-w-7xl mx-auto px-6 py-16 mb-8">
+        <section id="faq-section" class="max-w-7xl mx-auto px-6 py-16 mb-8 content-section">
             <div class="max-w-3xl mx-auto">
                 <h2 class="text-3xl font-extrabold text-slate-900 mb-8 text-center">Frequently Asked Questions</h2>
                 <div class="space-y-4">
@@ -176,7 +206,7 @@
         </section>
     </main>
 
-    <footer class="glass-panel border-t border-slate-200/60 pt-16 pb-8 text-xs text-slate-500 mt-auto">
+    <footer class="glass-panel border-t border-slate-200/60 pt-16 pb-8 text-xs text-slate-500 mt-auto content-section">
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div class="col-span-2 space-y-4">
                 <div class="flex items-center space-x-2 text-xl font-extrabold text-blue-600 tracking-tight">
@@ -199,7 +229,7 @@
                 <h3 class="font-bold text-slate-800 mb-3 text-sm">Connect</h3>
                 <ul class="space-y-2">
                     <li><a href="contact.html" class="hover:text-blue-600 transition">Contact Support</a></li>
-                    <li><a href="#" class="hover:text-blue-600 transition">Provide Feedback</a></li>
+                    <li><a href="contact.html" class="hover:text-blue-600 transition">Provide Feedback</a></li>
                 </ul>
             </div>
         </div>
@@ -209,12 +239,11 @@
         </div>
     </footer>
 
-    <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl space-x-2 z-50 items-center transform transition-all duration-300 translate-y-20 opacity-0 flex"></div>
+    <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl space-x-2 z-50 items-center transition duration-300 transform translate-y-20 opacity-0 flex gpu-accelerate"></div>
 
     <script>
         const { PDFDocument, rgb, degrees } = PDFLib;
 
-        // Enhanced File State Manager to handle Multiple files/Reordering
         let activeFiles = [];
 
         class AppUI {
@@ -224,15 +253,16 @@
                 t.innerHTML = isError 
                     ? `<i class="fa-solid fa-circle-exclamation text-sm"></i> <span>${msg}</span>` 
                     : `<i class="fa-solid fa-circle-check text-sm"></i> <span>${msg}</span>`;
-                t.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-0 opacity-100 ${isError ? 'bg-red-500 shadow-red-200/50' : 'bg-emerald-600 shadow-emerald-200/50'}`;
+                t.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl flex items-center space-x-2 z-50 transition duration-300 transform translate-y-0 opacity-100 gpu-accelerate ${isError ? 'bg-red-500 shadow-red-200/50' : 'bg-emerald-600 shadow-emerald-200/50'}`;
                 setTimeout(() => { t.classList.remove('translate-y-0', 'opacity-100'); t.classList.add('translate-y-20', 'opacity-0'); }, 4000);
             }
 
             static renderFileInput(tool, multiple = false, accept = ".pdf") {
+                const cBase = tool.color.split('-')[0];
                 return `
                     <div class="space-y-3">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Source File(s)</label>
-                        <div id="drop-zone" class="relative w-full border-2 border-dashed border-${tool.border.split('-')[2]}-200 rounded-2xl p-4 bg-${tool.color}-50/10 transition-colors text-center hover:bg-${tool.color}-50/30">
+                        <div id="drop-zone" class="relative w-full border-2 border-dashed border-${cBase}-300 rounded-2xl p-4 bg-${cBase}-50 transition-colors text-center hover:bg-${cBase}-100">
                             <input type="file" id="active-file-input" ${multiple ? 'multiple' : ''} accept="${accept}" 
                                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="AppUI.handleFileSelect(event, ${multiple}, '${tool.color}')">
                             <div class="pointer-events-none space-y-1">
@@ -259,8 +289,17 @@
                 const list = document.getElementById('file-list');
                 if(!activeFiles.length) { list.classList.add('hidden'); return; }
                 list.classList.remove('hidden');
-                list.innerHTML = activeFiles.map((f, i) => `
-                    <div class="flex items-center justify-between bg-white p-2 border border-slate-100 rounded-lg shadow-sm text-xs" draggable="true" ondragstart="AppUI.dragStart(${i})" ondragover="event.preventDefault()" ondrop="AppUI.drop(${i}, '${colorClass}')">
+                
+                const fragment = document.createDocumentFragment();
+                activeFiles.forEach((f, i) => {
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between bg-white p-2 border border-slate-100 rounded-lg shadow-sm text-xs";
+                    div.draggable = true;
+                    div.ondragstart = (e) => AppUI.dragStart(e, i);
+                    div.ondragover = (e) => e.preventDefault();
+                    div.ondrop = (e) => AppUI.drop(e, i, colorClass);
+                    
+                    div.innerHTML = `
                         <span class="truncate max-w-[200px] font-medium text-slate-600">
                             <i class="fa-solid fa-grip-vertical text-slate-300 cursor-move mr-2"></i> ${f.name}
                         </span>
@@ -268,8 +307,12 @@
                             <span class="text-slate-400">${(f.size / 1024 / 1024).toFixed(2)} MB</span>
                             <button onclick="AppUI.removeFile(${i}, '${colorClass}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                    fragment.appendChild(div);
+                });
+                
+                list.innerHTML = '';
+                list.appendChild(fragment);
             }
 
             static removeFile(index, colorClass) {
@@ -278,9 +321,9 @@
                 if(activeFiles.length === 0) document.getElementById('active-file-input').value = '';
             }
 
-            static dragStart(index) { event.dataTransfer.setData("text/plain", index); }
-            static drop(targetIndex, colorClass) {
-                const sourceIndex = event.dataTransfer.getData("text/plain");
+            static dragStart(e, index) { e.dataTransfer.setData("text/plain", index); }
+            static drop(e, targetIndex, colorClass) {
+                const sourceIndex = e.dataTransfer.getData("text/plain");
                 const item = activeFiles.splice(sourceIndex, 1)[0];
                 activeFiles.splice(targetIndex, 0, item);
                 this.updateFileList(colorClass);
@@ -301,12 +344,14 @@
                 const file = activeFiles[0];
                 if(!file.type.startsWith('image/')) { this.showToast("Please select a valid image.", 'error'); return; }
                 const img = new Image();
+                const url = URL.createObjectURL(file); 
                 img.onload = () => { 
                     document.getElementById('img-w').value = img.width; 
                     document.getElementById('img-h').value = img.height; 
                     document.getElementById('img-w').dataset.ratio = img.width / img.height;
+                    URL.revokeObjectURL(url); 
                 }
-                img.src = URL.createObjectURL(file);
+                img.src = url;
             }
 
             static syncRatio(isWidth) {
@@ -325,7 +370,8 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url; a.download = filename;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); 
+                URL.revokeObjectURL(url);
             }
 
             static parsePageRanges(rangeStr, maxPages) {
@@ -353,7 +399,9 @@
                 const btn = document.getElementById('execute-btn');
                 const originalBtnText = btn.innerHTML;
                 btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Processing...`; btn.classList.add('opacity-70', 'cursor-not-allowed');
+                
                 AppUI.updateProgress(10);
+                await new Promise(r => setTimeout(r, 0)); 
 
                 try {
                     let finalBlob = null; let filename = `Output_${id}.pdf`;
@@ -362,9 +410,11 @@
                     else if (id === 'merge') { finalBlob = await this.processMerge(activeFiles); } 
                     else {
                         AppUI.updateProgress(30);
+                        await new Promise(r => setTimeout(r, 0)); 
                         const fileBytes = await activeFiles[0].arrayBuffer();
                         const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
                         AppUI.updateProgress(60);
+                        await new Promise(r => setTimeout(r, 0)); 
                         finalBlob = await this.processSinglePDF(id, pdfDoc);
                         if(id === 'split') filename = `Split_Pages.zip`;
                     }
@@ -383,7 +433,13 @@
                 const quality = parseFloat(document.getElementById('img-quality').value) / 100;
                 
                 if (!w || !h || w <= 0 || h <= 0) throw new Error("Invalid dimensions specified.");
-                const img = await new Promise((resolve, reject) => { const imgEl = new Image(); imgEl.onload = () => resolve(imgEl); imgEl.onerror = () => reject(new Error("Failed to decode image.")); imgEl.src = URL.createObjectURL(file); });
+                const img = await new Promise((resolve, reject) => { 
+                    const imgEl = new Image(); 
+                    const url = URL.createObjectURL(file);
+                    imgEl.onload = () => { resolve(imgEl); URL.revokeObjectURL(url); }; 
+                    imgEl.onerror = () => { reject(new Error("Failed to decode image.")); URL.revokeObjectURL(url); }; 
+                    imgEl.src = url; 
+                });
                 const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
                 const ctx = canvas.getContext('2d', { alpha: format !== 'image/jpeg' });
                 if(format === 'image/jpeg') { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, w, h); }
@@ -404,6 +460,8 @@
                 for (let i=0; i<files.length; i++) {
                     const f = files[i];
                     AppUI.updateProgress(10 + (i / files.length) * 80);
+                    await new Promise(r => setTimeout(r, 0)); 
+                    
                     const bytes = await f.arrayBuffer(); let img;
                     if (f.type === 'image/png') img = await doc.embedPng(bytes); else if (f.type === 'image/jpeg' || f.type === 'image/jpg') img = await doc.embedJpg(bytes); else continue;
                     
@@ -422,6 +480,8 @@
                 const doc = await PDFDocument.create();
                 for (let i = 0; i < files.length; i++) {
                     AppUI.updateProgress(10 + (i / files.length) * 80);
+                    await new Promise(r => setTimeout(r, 0)); 
+                    
                     const f = files[i];
                     const bytes = await f.arrayBuffer(); const src = await PDFDocument.load(bytes);
                     const pages = await doc.copyPages(src, src.getPageIndices()); pages.forEach(p => doc.addPage(p));
@@ -445,6 +505,8 @@
                     for (let i = 0; i < indicesToSplit.length; i++) {
                         const idx = indicesToSplit[i];
                         AppUI.updateProgress(60 + (i / indicesToSplit.length) * 30);
+                        await new Promise(r => setTimeout(r, 0)); 
+                        
                         const subDoc = await PDFDocument.create(); const [p] = await subDoc.copyPages(sourceDoc, [idx]); subDoc.addPage(p);
                         const subBytes = await subDoc.save(); zip.file(`Page_${idx + 1}.pdf`, subBytes);
                     }
@@ -461,7 +523,7 @@
                 } 
                 else if (id === 'del') { 
                     const rangeStr = document.getElementById('pg-input').value;
-                    const indices = this.parsePageRanges(rangeStr, totalPages).sort((a,b) => b-a); // Delete from end to avoid shifting
+                    const indices = this.parsePageRanges(rangeStr, totalPages).sort((a,b) => b-a); 
                     if (indices.length >= totalPages) throw new Error("Cannot delete all pages."); 
                     indices.forEach(idx => sourceDoc.removePage(idx));
                 } 
@@ -501,7 +563,7 @@
                     
                     sourceDoc.getPages().forEach((p, i) => { 
                         const { width, height } = p.getSize(); 
-                        let x = width - 70, y = 30; // Bottom Right
+                        let x = width - 70, y = 30; 
                         if(pos === 'bottom-left') { x = 30; }
                         else if(pos === 'bottom-center') { x = width/2 - 20; }
                         else if(pos === 'top-right') { y = height - 30; }
@@ -577,7 +639,7 @@
             const tool = ToolsConfig[key];
             const card = document.createElement('a');
             card.href = `#tool-${key}`;
-            card.className = `glass-panel ${tool.border} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition-all duration-300 group cursor-pointer border border-slate-100`;
+            card.className = `glass-panel ${tool.border} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition duration-300 group cursor-pointer border border-slate-100`;
             card.onclick = (e) => { e.preventDefault(); activateWorkspace(key); history.pushState(null, null, `#tool-${key}`); };
             card.innerHTML = `
                 <div class="w-14 h-12 bg-${tool.color} text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm">
@@ -596,7 +658,6 @@
             const canvas = document.getElementById('canvas-content');
             const tool = ToolsConfig[id];
             
-            // Reset active files for new tool
             activeFiles = []; 
             
             box.style.opacity = '0';
@@ -621,7 +682,6 @@
                     </button>
                 `;
                 
-                // Add Drag & Drop Listeners for the drop zone
                 const dropZone = document.getElementById('drop-zone');
                 if(dropZone) {
                     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -641,8 +701,11 @@
                     }, false);
                 }
 
-                box.style.opacity = '1'; box.style.transform = 'scale(1)';
-                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                window.requestAnimationFrame(() => {
+                    box.style.opacity = '1'; 
+                    box.style.transform = 'scale(1)';
+                    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
             }, 200);
         }
     </script>
