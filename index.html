@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <title>Free Online PDF Tools: Merge, Split, and Convert Securely</title> 
-    <meta name="description" content="Manage documents effortlessly with our modern, client-side PDF tools. Instantly merge, split, and convert PDFs locally in your browser. 100% secure, offline, and free." /> 
+    <meta name="description" content="Manage documents effortlessly with our modern, client-side PDF tools. Instantly merge, split, and convert PDFs locally in your browser. Highly secure, offline, and free." /> 
     <meta name="keywords" content="free online pdf tools, merge pdf offline, split pdf free, convert image to pdf, secure pdf editor, client-side document tools, compress pdf without losing quality" /> 
     
     <link rel="canonical" href="https://pdfexpert.xyz/" /> 
@@ -20,7 +20,7 @@
     <meta property="og:site_name" content="Pdfexpert" /> 
     <meta property="og:url" content="https://pdfexpert.xyz/" /> 
     <meta property="og:title" content="Free Online PDF Tools: Merge, Split, and Convert Securely" /> 
-    <meta property="og:description" content="Manage documents effortlessly with a clean, high-level interface. 100% secure, browser-based PDF tools with zero file uploads required." /> 
+    <meta property="og:description" content="Manage documents effortlessly with a clean, high-level interface. Highly secure, browser-based PDF tools with zero file uploads required." /> 
     <meta property="og:image" content="https://pdfexpert.xyz/assets/og-banner-1200x630.jpg" /> 
     <meta property="og:locale" content="en_US" /> 
     
@@ -124,7 +124,7 @@
                 
                 <div class="flex flex-wrap gap-4 pt-2">
                     <div class="flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-emerald-100">
-                        <i class="fa-solid fa-shield-halved"></i> <span>100% Secure & Offline</span>
+                        <i class="fa-solid fa-shield-halved"></i> <span>Highly Secure & Offline</span>
                     </div>
                     <div class="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-blue-100">
                         <i class="fa-solid fa-cloud-arrow-down"></i> <span>No Cloud Uploads</span>
@@ -794,6 +794,29 @@
         }
 
         const ToolsConfig = {
+            merge: { name: "Merge PDF", desc: "Combine & reorder PDFs.", icon: "fa-copy", color: "blue-600", border: "border-b-[3px] border-b-blue-600 hover:border-blue-600/40", render: (t) => AppUI.renderFileInput(t, true) },
+            split: { name: "Split PDF", desc: "Extract to ZIP by ranges or intervals.", icon: "fa-scissors", color: "emerald-600", border: "border-b-[3px] border-b-emerald-600 hover:border-emerald-600/40", render: (t) => AppUI.renderFileInput(t) + `
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <select id="split-mode" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                        <option value="range">Specific Ranges</option>
+                        <option value="every">Split Every Page</option>
+                        <option value="n-pages">Split Every N Pages</option>
+                    </select>
+                    <input type="text" id="pg-input" placeholder="Range (e.g. 1-3) or N value" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>` },
+            imgToPdf: { name: "Image to PDF", desc: "Advanced document creation.", icon: "fa-images", color: "blue-700", border: "border-b-[3px] border-b-blue-700 hover:border-blue-700/40", render: (t) => AppUI.renderFileInput(t, true, "image/*") + `
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <select id="page-size" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none bg-white">
+                        <option value="595.28,841.89">A4</option><option value="612,792">US Letter</option>
+                    </select>
+                    <select id="orientation" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none bg-white">
+                        <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
+                    </select>
+                    <select id="img-fit" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none bg-white">
+                        <option value="fit">Fit (Preserve Ratio)</option><option value="fill">Fill (Crop to Fit)</option><option value="stretch">Stretch</option>
+                    </select>
+                    <input type="number" id="margin" placeholder="Margin (px)" value="20" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none">
+                </div>` },
             resizer: { name: "Image Resizer", desc: "Advanced resizing offline.", icon: "fa-compress", color: "red-500", border: "border-b-[3px] border-b-red-500 hover:border-red-500/40", render: (t) => `
                 <div class="space-y-3">
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Source Image</label>
@@ -832,16 +855,6 @@
                         <input type="number" id="img-quality" placeholder="Quality % (e.g. 90)" value="90" min="10" max="100" class="w-1/2 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 outline-none transition">
                     </div>
                 </div>` },
-            merge: { name: "Merge PDF", desc: "Combine & reorder PDFs.", icon: "fa-copy", color: "blue-600", border: "border-b-[3px] border-b-blue-600 hover:border-blue-600/40", render: (t) => AppUI.renderFileInput(t, true) },
-            split: { name: "Split PDF", desc: "Extract to ZIP by ranges or intervals.", icon: "fa-scissors", color: "emerald-600", border: "border-b-[3px] border-b-emerald-600 hover:border-emerald-600/40", render: (t) => AppUI.renderFileInput(t) + `
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <select id="split-mode" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
-                        <option value="range">Specific Ranges</option>
-                        <option value="every">Split Every Page</option>
-                        <option value="n-pages">Split Every N Pages</option>
-                    </select>
-                    <input type="text" id="pg-input" placeholder="Range (e.g. 1-3) or N value" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>` },
             rotate: { name: "Rotate Pages", desc: "Rotate specific pages.", icon: "fa-rotate-right", color: "purple-600", border: "border-b-[3px] border-b-purple-600 hover:border-purple-600/40", render: (t) => AppUI.renderFileInput(t) + `
                 <div class="flex gap-2 mt-3">
                     <select id="rot-dir" class="w-1/2 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500 outline-none bg-white">
@@ -850,8 +863,6 @@
                     <input type="text" id="pg-input" placeholder="Pages (e.g. 1-3, 5)" class="w-1/2 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500 outline-none">
                 </div>` },
             del: { name: "Delete Page", desc: "Remove page ranges.", icon: "fa-trash", color: "amber-500", border: "border-b-[3px] border-b-amber-500 hover:border-amber-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="pg-input" placeholder="Pages to delete (e.g. 1, 3-5)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-500 outline-none">` },
-            extract: { name: "Extract Pages", desc: "Isolate specific ranges.", icon: "fa-file-export", color: "orange-500", border: "border-b-[3px] border-b-orange-500 hover:border-orange-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="pg-input" placeholder="Pages to extract (e.g. 2-6)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 outline-none">` },
-            reorder: { name: "Reverse PDF", desc: "Flip layout order backwards.", icon: "fa-arrow-down-up-across-line", color: "pink-600", border: "border-b-[3px] border-b-pink-600 hover:border-pink-600/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="pg-input" placeholder="Pages to reverse (e.g. 1-3) or blank for all" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500 outline-none">` },
             watermark: { name: "Watermark", desc: "Advanced image or text stamping.", icon: "fa-stamp", color: "cyan-500", border: "border-b-[3px] border-b-cyan-500 hover:border-cyan-500/40", render: (t) => AppUI.renderFileInput(t) + `
                 <div class="grid grid-cols-2 gap-2 mt-3 mb-2">
                     <select id="wm-type" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-xs outline-none bg-white" onchange="AppUI.toggleWatermarkMode()">
@@ -891,19 +902,8 @@
                     <input type="number" id="pg-start" placeholder="Start Number" value="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none">
                     <input type="number" id="pg-size" placeholder="Font Size" value="12" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none">
                 </div>` },
-            imgToPdf: { name: "Image to PDF", desc: "Advanced document creation.", icon: "fa-images", color: "blue-700", border: "border-b-[3px] border-b-blue-700 hover:border-blue-700/40", render: (t) => AppUI.renderFileInput(t, true, "image/*") + `
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <select id="page-size" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none bg-white">
-                        <option value="595.28,841.89">A4</option><option value="612,792">US Letter</option>
-                    </select>
-                    <select id="orientation" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none bg-white">
-                        <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
-                    </select>
-                    <select id="img-fit" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none bg-white">
-                        <option value="fit">Fit (Preserve Ratio)</option><option value="fill">Fill (Crop to Fit)</option><option value="stretch">Stretch</option>
-                    </select>
-                    <input type="number" id="margin" placeholder="Margin (px)" value="20" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs outline-none">
-                </div>` }
+            extract: { name: "Extract Pages", desc: "Isolate specific ranges.", icon: "fa-file-export", color: "orange-500", border: "border-b-[3px] border-b-orange-500 hover:border-orange-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="pg-input" placeholder="Pages to extract (e.g. 2-6)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 outline-none">` },
+            reorder: { name: "Reverse PDF", desc: "Flip layout order backwards.", icon: "fa-arrow-down-up-across-line", color: "pink-600", border: "border-b-[3px] border-b-pink-600 hover:border-pink-600/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="pg-input" placeholder="Pages to reverse (e.g. 1-3) or blank for all" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-pink-500 outline-none">` }
         };
 
         const grid = document.getElementById('tools-grid');
