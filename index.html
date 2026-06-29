@@ -1,913 +1,410 @@
-(() => {
-const { PDFDocument, rgb, degrees } = PDFLib;
-
-// Global App State with extended SaaS state properties
-const AppState = { 
-    isProcessing: false, 
-    activeId: null,
-    uploadedFiles: [], // Holds file wrappers with metadata, thumbnails, rotation angles, etc.
-    draggedIndex: null
-}; 
-
-// Explicit compilation dictionary protecting Tailwind utility classes from dynamic omission 
-const ColorMap = { 
-    'red-500': { bg: 'bg-red-500', hover: 'hover:bg-red-600', fileBg: 'file:bg-red-50', fileText: 'file:text-red-700', border: 'border-red-200', bgMuted: 'bg-red-50/10' }, 
-    'blue-600': { bg: 'bg-blue-600', hover: 'hover:bg-blue-700', fileBg: 'file:bg-blue-50', fileText: 'file:text-blue-700', border: 'border-blue-200', bgMuted: 'bg-blue-50/10' }, 
-    'emerald-600': { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', fileBg: 'file:bg-emerald-50', fileText: 'file:text-emerald-700', border: 'border-emerald-200', bgMuted: 'bg-emerald-50/10' }, 
-    'purple-600': { bg: 'bg-purple-600', hover: 'hover:bg-purple-700', fileBg: 'file:bg-purple-50', fileText: 'file:text-purple-700', border: 'border-purple-200', bgMuted: 'bg-purple-50/10' }, 
-    'amber-500': { bg: 'bg-amber-500', hover: 'hover:bg-amber-600', fileBg: 'file:bg-amber-50', fileText: 'file:text-amber-700', border: 'border-amber-200', bgMuted: 'bg-amber-50/10' }, 
-    'orange-500': { bg: 'bg-orange-500', hover: 'hover:bg-orange-600', fileBg: 'file:bg-orange-50', fileText: 'file:text-orange-700', border: 'border-orange-200', bgMuted: 'bg-orange-50/10' }, 
-    'pink-600': { bg: 'bg-pink-600', hover: 'hover:bg-pink-700', fileBg: 'file:bg-pink-50', fileText: 'file:text-pink-700', border: 'border-pink-200', bgMuted: 'bg-pink-50/10' }, 
-    'cyan-500': { bg: 'bg-cyan-500', hover: 'hover:bg-cyan-600', fileBg: 'file:bg-cyan-50', fileText: 'file:text-cyan-700', border: 'border-cyan-200', bgMuted: 'bg-cyan-50/10' }, 
-    'teal-500': { bg: 'bg-teal-500', hover: 'hover:bg-teal-600', fileBg: 'file:bg-teal-50', fileText: 'file:text-teal-700', border: 'border-teal-200', bgMuted: 'bg-teal-50/10' }, 
-    'blue-700': { bg: 'bg-blue-700', hover: 'hover:bg-blue-800', fileBg: 'file:bg-blue-50', fileText: 'file:text-blue-700', border: 'border-blue-200', bgMuted: 'bg-blue-50/10' } 
-}; 
-
-class AppUI { 
-    static showToast(msg, type = 'success') { 
-        const t = document.getElementById('toast'); 
-        const isError = type === 'error'; 
-        t.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'} text-sm"></i> <span>${msg}</span>`; 
-        t.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-0 opacity-100 ${isError ? 'bg-red-500 shadow-red-200/50' : 'bg-emerald-600 shadow-emerald-200/50'}`; 
-        setTimeout(() => { 
-            t.classList.remove('translate-y-0', 'opacity-100'); 
-            t.classList.add('translate-y-20', 'opacity-0'); 
-        }, 4000); 
-    } 
-
-    static setGlobalLock(locked) { 
-        AppState.isProcessing = locked; 
-        const gridItems = document.querySelectorAll('#tools-grid a'); 
-        gridItems.forEach(item => { 
-            if (locked) item.classList.add('opacity-40', 'pointer-events-none'); 
-            else item.classList.remove('opacity-40', 'pointer-events-none'); 
-        }); 
-        const progressIndicator = document.getElementById('global-progress');
-        if (progressIndicator) {
-            if (locked) progressIndicator.classList.remove('hidden');
-            else progressIndicator.classList.add('hidden');
-        }
-    } 
-
-    static renderFileInput(tool, multiple = false, accept = ".pdf") { 
-        const config = ColorMap[tool.color] || ColorMap['blue-600']; 
-        return ` 
-        <div class="space-y-3"> 
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider" id="file-input-label">Source File(s)</label> 
-            <div id="drag-drop-zone" class="border-2 border-dashed ${config.border} rounded-2xl p-6 ${config.bgMuted} transition-colors flex flex-col items-center justify-center space-y-2 cursor-pointer hover:bg-slate-50/50" role="button" aria-labelledby="file-input-label">
-                <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400"></i>
-                <span class="text-xs font-medium text-slate-600">Drag & drop files here or click to browse</span>
-                <input type="file" id="active-file-input" ${multiple ? 'multiple' : ''} accept="${accept}" class="hidden"> 
-            </div>
-            <div id="preview-workspace-container" class="mt-4 hidden space-y-4">
-                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">File Workspace Preview & Reordering</h4>
-                <div id="preview-items-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-2 bg-slate-50 rounded-xl max-h-96 overflow-y-auto"></div>
-            </div>
-        </div>`; 
-    } 
-
-    static async updateWorkspacePreviews(files, id) {
-        const container = document.getElementById('preview-workspace-container');
-        const grid = document.getElementById('preview-items-grid');
-        if (!container || !grid) return;
-
-        grid.innerHTML = '';
-        AppState.uploadedFiles = [];
-
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const fileObj = {
-                id: i,
-                file: file,
-                selected: true,
-                rotation: 0,
-                customWidth: 0,
-                customHeight: 0
-            };
-            AppState.uploadedFiles.push(fileObj);
-            
-            const card = document.createElement('div');
-            card.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between items-center relative group select-none cursor-grab active:cursor-grabbing";
-            card.setAttribute('draggable', 'true');
-            card.dataset.index = i;
-
-            // Thumbnail Placeholder or Dynamic Generation representation
-            let thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 mb-2 transition-transform duration-200" id="thumb-node-${i}"><i class="fa-solid fa-file-pdf text-xl"></i></div>`;
-            if (file.type.startsWith('image/')) {
-                const url = URL.createObjectURL(file);
-                thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center"><img src="${url}" class="max-h-full max-w-full object-contain" id="thumb-node-${i}"/></div>`;
-            }
-
-            card.innerHTML = `
-                <div class="absolute top-2 left-2 z-10">
-                    <input type="checkbox" checked class="item-selector-checkbox rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" data-index="${i}">
-                </div>
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 z-10">
-                    <button class="bg-white p-1 rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-slate-900 rotation-trigger-btn" data-index="${i}" type="button"><i class="fa-solid fa-rotate-right text-[10px]"></i></button>
-                    <button class="bg-white p-1 rounded-md text-red-500 shadow-sm border border-slate-200 hover:bg-red-50 exclusion-trigger-btn" data-index="${i}" type="button"><i class="fa-solid fa-trash text-[10px]"></i></button>
-                </div>
-                ${thumbnailHTML}
-                <div class="w-full text-center">
-                    <p class="text-[10px] font-semibold text-slate-700 truncate max-w-full">${file.name}</p>
-                    <p class="text-[9px] text-slate-400">${(file.size / 1024).toFixed(1)} KB</p>
-                </div>
-            `;
-
-            // Setup Drag and Drop events
-            card.addEventListener('dragstart', (e) => { AppState.draggedIndex = card.dataset.index; e.dataTransfer.effectAllowed = 'move'; });
-            card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('border-blue-500', 'bg-blue-50/20'); });
-            card.addEventListener('dragleave', () => { card.classList.remove('border-blue-500', 'bg-blue-50/20'); });
-            card.addEventListener('drop', (e) => {
-                e.preventDefault();
-                card.classList.remove('border-blue-500', 'bg-blue-50/20');
-                const targetIdx = parseInt(card.dataset.index);
-                const draggedIdx = parseInt(AppState.draggedIndex);
-                if (targetIdx !== draggedIdx) {
-                    const temp = AppState.uploadedFiles[draggedIdx];
-                    AppState.uploadedFiles.splice(draggedIdx, 1);
-                    AppState.uploadedFiles.splice(targetIdx, 0, temp);
-                    AppUI.refreshWorkspaceDOM(id);
-                }
-            });
-
-            grid.appendChild(card);
-        }
-
-        // Intercept functional context variables if PDF file metadata generation is required
-        if (files[0] && files[0].type === 'application/pdf' && ['split', 'rotate', 'del', 'extract', 'reorder'].includes(id)) {
-            try {
-                const reader = new FileReader();
-                reader.onload = async function() {
-                    const pdfDoc = await PDFDocument.load(this.result, { ignoreEncryption: true });
-                    const pagesCount = pdfDoc.getPageCount();
-                    grid.innerHTML = ''; // Rebuild by explicit single page indices mapping
-                    const baseFile = files[0];
-                    AppState.uploadedFiles = [];
-
-                    for(let p = 0; p < pagesCount; p++) {
-                        AppState.uploadedFiles.push({
-                            id: p,
-                            file: baseFile,
-                            pageIndex: p,
-                            selected: true,
-                            rotation: 0
-                        });
-
-                        const pageCard = document.createElement('div');
-                        pageCard.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between items-center relative group select-none cursor-grab active:cursor-grabbing";
-                        pageCard.setAttribute('draggable', 'true');
-                        pageCard.dataset.index = p;
-
-                        pageCard.innerHTML = `
-                            <div class="absolute top-2 left-2 z-10">
-                                <input type="checkbox" checked class="item-selector-checkbox rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" data-index="${p}">
-                            </div>
-                            <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 z-10">
-                                <button class="bg-white p-1 rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-slate-900 rotation-trigger-btn" data-index="${p}" type="button"><i class="fa-solid fa-rotate-right text-[10px]"></i></button>
-                                <button class="bg-white p-1 rounded-md text-red-500 shadow-sm border border-slate-200 hover:bg-red-50 exclusion-trigger-btn" data-index="${p}" type="button"><i class="fa-solid fa-trash text-[10px]"></i></button>
-                            </div>
-                            <div class="w-full h-24 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-slate-400 mb-2 transition-transform duration-200" id="thumb-node-${p}">
-                                <i class="fa-solid fa-file-lines text-lg mb-1"></i>
-                                <span class="text-[10px] font-bold text-slate-500">Page ${p+1}</span>
-                            </div>
-                            <div class="w-full text-center">
-                                <p class="text-[10px] font-semibold text-slate-700 truncate max-w-full">Index Context: ${p+1}</p>
-                            </div>
-                        `;
-
-                        pageCard.addEventListener('dragstart', (e) => { AppState.draggedIndex = pageCard.dataset.index; });
-                        pageCard.addEventListener('dragover', (e) => { e.preventDefault(); pageCard.classList.add('border-blue-500', 'bg-blue-50/20'); });
-                        pageCard.addEventListener('dragleave', () => { pageCard.classList.remove('border-blue-500', 'bg-blue-50/20'); });
-                        pageCard.addEventListener('drop', (e) => {
-                            e.preventDefault();
-                            pageCard.classList.remove('border-blue-500', 'bg-blue-50/20');
-                            const targetIdx = parseInt(pageCard.dataset.index);
-                            const draggedIdx = parseInt(AppState.draggedIndex);
-                            if (targetIdx !== draggedIdx) {
-                                const temp = AppState.uploadedFiles[draggedIdx];
-                                AppState.uploadedFiles.splice(draggedIdx, 1);
-                                AppState.uploadedFiles.splice(targetIdx, 0, temp);
-                                AppUI.refreshWorkspaceDOM(id);
-                            }
-                        });
-
-                        grid.appendChild(pageCard);
-                    }
-                    AppUI.bindWorkspaceInteractions(id);
-                };
-                reader.readAsArrayBuffer(baseFile);
-            } catch(e) { console.error("Page analytical preprocessing broken", e); }
-        }
-
-        container.classList.remove('hidden');
-        AppUI.bindWorkspaceInteractions(id);
-    }
-
-    static refreshWorkspaceDOM(id) {
-        const grid = document.getElementById('preview-items-grid');
-        if (!grid) return;
-        grid.innerHTML = '';
-
-        AppState.uploadedFiles.forEach((fileObj, index) => {
-            const card = document.createElement('div');
-            card.className = "bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between items-center relative group select-none cursor-grab active:cursor-grabbing";
-            card.setAttribute('draggable', 'true');
-            card.dataset.index = index;
-
-            let thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-slate-400 mb-2 transition-transform duration-200" style="transform: rotate(${fileObj.rotation}deg);" id="thumb-node-${index}"><i class="fa-solid ${fileObj.pageIndex !== undefined ? 'fa-file-lines' : 'fa-file-pdf'} text-xl"></i>${fileObj.pageIndex !== undefined ? `<span class="text-[10px] font-bold text-slate-500 mt-1">Page ${fileObj.pageIndex + 1}</span>` : ''}</div>`;
-            if (fileObj.file.type.startsWith('image/')) {
-                const url = URL.createObjectURL(fileObj.file);
-                thumbnailHTML = `<div class="w-full h-24 bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center"><img src="${url}" class="max-h-full max-w-full object-contain transition-transform duration-200" style="transform: rotate(${fileObj.rotation}deg);" id="thumb-node-${index}"/></div>`;
-            }
-
-            card.innerHTML = `
-                <div class="absolute top-2 left-2 z-10">
-                    <input type="checkbox" ${fileObj.selected ? 'checked' : ''} class="item-selector-checkbox rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5" data-index="${index}">
-                </div>
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 z-10">
-                    <button class="bg-white p-1 rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-slate-900 rotation-trigger-btn" data-index="${index}" type="button"><i class="fa-solid fa-rotate-right text-[10px]"></i></button>
-                    <button class="bg-white p-1 rounded-md text-red-500 shadow-sm border border-slate-200 hover:bg-red-50 exclusion-trigger-btn" data-index="${index}" type="button"><i class="fa-solid fa-trash text-[10px]"></i></button>
-                </div>
-                ${thumbnailHTML}
-                <div class="w-full text-center">
-                    <p class="text-[10px] font-semibold text-slate-700 truncate max-w-full">${fileObj.pageIndex !== undefined ? `Page Custom Order` : fileObj.file.name}</p>
-                </div>
-            `;
-
-            card.addEventListener('dragstart', (e) => { AppState.draggedIndex = card.dataset.index; });
-            card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('border-blue-500', 'bg-blue-50/20'); });
-            card.addEventListener('dragleave', () => { card.classList.remove('border-blue-500', 'bg-blue-50/20'); });
-            card.addEventListener('drop', (e) => {
-                e.preventDefault();
-                const targetIdx = parseInt(card.dataset.index);
-                const draggedIdx = parseInt(AppState.draggedIndex);
-                if (targetIdx !== draggedIdx) {
-                    const temp = AppState.uploadedFiles[draggedIdx];
-                    AppState.uploadedFiles.splice(draggedIdx, 1);
-                    AppState.uploadedFiles.splice(targetIdx, 0, temp);
-                    AppUI.refreshWorkspaceDOM(id);
-                }
-            });
-
-            grid.appendChild(card);
-        });
-
-        AppUI.bindWorkspaceInteractions(id);
-        AppUI.syncInputsWithWorkspaceContext(id);
-    }
-
-    static bindWorkspaceInteractions(id) {
-        document.querySelectorAll('.item-selector-checkbox').forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                const idx = parseInt(e.target.dataset.index);
-                AppState.uploadedFiles[idx].selected = e.target.checked;
-                AppUI.syncInputsWithWorkspaceContext(id);
-            });
-        });
-
-        document.querySelectorAll('.rotation-trigger-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.index);
-                AppState.uploadedFiles[idx].rotation = (AppState.uploadedFiles[idx].rotation + 90) % 360;
-                const node = document.getElementById(`thumb-node-${idx}`);
-                if(node) node.style.transform = `rotate(${AppState.uploadedFiles[idx].rotation}deg)`;
-            });
-        });
-
-        document.querySelectorAll('.exclusion-trigger-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.index);
-                AppState.uploadedFiles.splice(idx, 1);
-                AppUI.refreshWorkspaceDOM(id);
-                AppUI.showToast("Item context updated. Action reversible via re-upload.", "info");
-            });
-        });
-    }
-
-    static syncInputsWithWorkspaceContext(id) {
-        if (id === 'split' || id === 'extract' || id === 'del') {
-            const selectedIndices = AppState.uploadedFiles
-                .filter(f => f.selected)
-                .map(f => (f.pageIndex !== undefined ? f.pageIndex + 1 : f.id + 1));
-            const inputField = document.getElementById('pg-input');
-            if (inputField && selectedIndices.length > 0) {
-                inputField.value = selectedIndices.join(',');
-            }
-        }
-    }
-} 
-
-class PDFEngine { 
-    static async execute(id) { 
-        if (AppState.isProcessing) return; 
-        const input = document.getElementById('active-file-input'); 
-        const btn = document.getElementById('execute-btn'); 
-        
-        // Extended compatibility check for uploaded workspace pipeline structures
-        if ((!input || !input.files || input.files.length === 0) && AppState.uploadedFiles.length === 0) { 
-            AppUI.showToast("Please upload a required file to begin.", "error"); 
-            return; 
-        } 
-
-        AppUI.setGlobalLock(true); 
-        const originalBtnText = btn.innerHTML; 
-        btn.disabled = true; 
-        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Processing Engine Execution...`; 
-        btn.classList.add('opacity-70', 'cursor-not-allowed'); 
-
-        try { 
-            let finalBlob = null; 
-            let filename = `Output_${id}.pdf`; 
-
-            if (id === 'resizer') { 
-                finalBlob = await this.processResizer(AppState.uploadedFiles[0]?.file || input.files[0]); 
-                filename = `Resized_Image.${document.getElementById('img-format').value.split('/')[1]}`; 
-            } else if (id === 'imgToPdf') { 
-                const workingFiles = AppState.uploadedFiles.filter(f => f.selected).map(f => f.file);
-                finalBlob = await this.processImagesToPdf(workingFiles.length > 0 ? workingFiles : input.files); 
-            } else if (id === 'merge') { 
-                const workingFiles = AppState.uploadedFiles.filter(f => f.selected).map(f => f.file);
-                finalBlob = await this.processMerge(workingFiles.length > 0 ? workingFiles : input.files); 
-            } else { 
-                const targetFile = AppState.uploadedFiles[0]?.file || input.files[0];
-                const fileBytes = await targetFile.arrayBuffer(); 
-                if (fileBytes.byteLength === 0) throw new Error("The uploaded file is empty."); 
-                const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true }); 
-                finalBlob = await this.processSinglePDF(id, pdfDoc); 
-                if (id === 'split') filename = `Split_Pages.zip`; 
-            } 
-
-            if (finalBlob) { 
-                const url = URL.createObjectURL(finalBlob); 
-                const a = document.createElement('a'); 
-                a.href = url; 
-                a.download = filename; 
-                document.body.appendChild(a); 
-                a.click(); 
-                document.body.removeChild(a); 
-                setTimeout(() => URL.revokeObjectURL(url), 250); 
-                AppUI.showToast("Operation completed successfully!"); 
-            } 
-        } catch (error) { 
-            console.error("[Processing Exception]", error); 
-            AppUI.showToast(error.message || "An error occurred during compilation.", 'error'); 
-        } finally { 
-            btn.disabled = false; 
-            btn.innerHTML = originalBtnText; 
-            btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
-            AppUI.setGlobalLock(false); 
-        } 
-    } 
-
-    static async processResizer(file) { 
-        const w = parseInt(document.getElementById('img-w').value); 
-        const h = parseInt(document.getElementById('img-h').value); 
-        const format = document.getElementById('img-format').value; 
-        const qualitySlider = document.getElementById('img-quality');
-        const quality = qualitySlider ? parseFloat(qualitySlider.value) : 0.92;
-
-        if (!w || !h || w <= 0 || h <= 0) throw new Error("Invalid dimensions specified."); 
-        const objectUrl = URL.createObjectURL(file); 
-        const img = await new Promise((resolve, reject) => { 
-            const imgEl = new Image(); 
-            imgEl.onload = () => resolve(imgEl); 
-            imgEl.onerror = () => reject(new Error("Failed to decode image data structure.")); 
-            imgEl.src = objectUrl; 
-        }); 
-
-        const canvas = document.createElement('canvas'); 
-        canvas.width = w; 
-        canvas.height = h; 
-        const ctx = canvas.getContext('2d', { alpha: format !== 'image/jpeg' }); 
-        if (format === 'image/jpeg') { 
-            ctx.fillStyle = "#FFFFFF"; 
-            ctx.fillRect(0, 0, w, h); 
-        } 
-        ctx.drawImage(img, 0, 0, w, h); 
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality)); 
-        URL.revokeObjectURL(objectUrl); 
-        canvas.width = 0; canvas.height = 0; 
-        return blob; 
-    } 
-
-    static async processImagesToPdf(files) { 
-        const doc = await PDFDocument.create(); 
-        const layoutSel = document.getElementById('img-layout-select')?.value || 'A4';
-        const gridSel = document.getElementById('img-grid-select')?.value || '1x1';
-        
-        let baseWidth = 595.28, baseHeight = 841.89; // Default A4
-        if (layoutSel === 'LETTER') { baseWidth = 612; baseHeight = 792; }
-        else if (layoutSel === 'CUSTOM') {
-            baseWidth = parseInt(document.getElementById('custom-layout-w')?.value) || 595;
-            baseHeight = parseInt(document.getElementById('custom-layout-h')?.value) || 841;
-        }
-
-        // Production-ready support mapping: Multi-images processing pipeline configurations
-        if (gridSel === '2x2' && files.length >= 4) {
-            // High UX Depth multi-grid engine scaling logic
-            let page = doc.addPage([baseWidth, baseHeight]);
-            const wPart = baseWidth / 2, hPart = baseHeight / 2;
-            for (let i = 0; i < files.length; i++) {
-                if (i > 0 && i % 4 === 0) page = doc.addPage([baseWidth, baseHeight]);
-                const bytes = await files[i].arrayBuffer();
-                let img = files[i].type === 'image/png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-                const quadIdx = i % 4;
-                const xOff = (quadIdx % 2) * wPart, yOff = baseHeight - (Math.floor(quadIdx / 2) + 1) * hPart;
-                page.drawImage(img, { x: xOff + 5, y: yOff + 5, width: wPart - 10, height: hPart - 10 });
-            }
-        } else {
-            for (let i = 0; i < files.length; i++) { 
-                const bytes = await files[i].arrayBuffer(); 
-                let img; 
-                if (files[i].type === 'image/png') img = await doc.embedPng(bytes); 
-                else if (files[i].type === 'image/jpeg' || files[i].type === 'image/jpg') img = await doc.embedJpg(bytes); 
-                else continue; 
-                const scale = Math.min(baseWidth / img.width, baseHeight / img.height); 
-                const sw = img.width * scale, sh = img.height * scale; 
-                const page = doc.addPage([baseWidth, baseHeight]); 
-                page.drawImage(img, { x: (baseWidth / 2) - (sw / 2), y: (baseHeight / 2) - (sh / 2), width: sw, height: sh }); 
-            } 
-        }
-        
-        const compressionToggle = document.getElementById('compression-toggle');
-        if (compressionToggle && compressionToggle.checked) {
-            // Structural programmatic optimization mapping flag
-            return new Blob([await doc.save({ useObjectStreams: true })], { type: 'application/pdf' });
-        }
-        return new Blob([await doc.save()], { type: 'application/pdf' }); 
-    } 
-
-    static async processMerge(files) { 
-        const doc = await PDFDocument.create(); 
-        for (let i = 0; i < files.length; i++) { 
-            const bytes = await files[i].arrayBuffer(); 
-            const src = await PDFDocument.load(bytes); 
-            const pages = await doc.copyPages(src, src.getPageIndices()); 
-            pages.forEach(p => doc.addPage(p)); 
-        } 
-        const compressionToggle = document.getElementById('compression-toggle');
-        if (compressionToggle && compressionToggle.checked) {
-            return new Blob([await doc.save({ useObjectStreams: true })], { type: 'application/pdf' });
-        }
-        return new Blob([await doc.save()], { type: 'application/pdf' }); 
-    } 
-
-    static async processSinglePDF(id, sourceDoc) { 
-        const totalPages = sourceDoc.getPageCount(); 
-        
-        // Extracted Multi-Page selection mapping parsing mechanics
-        const rangeInput = document.getElementById('pg-input')?.value || "";
-        let targetedIndices = [];
-        if (rangeInput.trim().length > 0) {
-            const blocks = rangeInput.split(',');
-            blocks.forEach(b => {
-                if(b.includes('-')) {
-                    const [start, end] = b.split('-').map(x => parseInt(x.trim()) - 1);
-                    if(!isNaN(start) && !isNaN(end)) {
-                        for(let r = start; r <= end; r++) if (r >= 0 && r < totalPages) targetedIndices.push(r);
-                    }
-                } else {
-                    const idx = parseInt(b.trim()) - 1;
-                    if(!isNaN(idx) && idx >= 0 && idx < totalPages) targetedIndices.push(idx);
-                }
-            });
-        }
-        
-        // Universal backup wrapper if custom workflow tracking data mapping is active
-        if (AppState.uploadedFiles.length > 0 && ['reorder', 'rotate', 'del', 'extract', 'split'].includes(id)) {
-            // Synchronize mapping arrays context safely
-            if (id === 'reorder') {
-                const reorderedDoc = await PDFDocument.create();
-                for (let k = 0; k < AppState.uploadedFiles.length; k++) {
-                    const wrapper = AppState.uploadedFiles[k];
-                    const [p] = await reorderedDoc.copyPages(sourceDoc, [wrapper.pageIndex]);
-                    if (wrapper.rotation !== 0) {
-                        p.setRotation(degrees((p.getRotation().angle + wrapper.rotation) % 360));
-                    }
-                    reorderedDoc.addPage(p);
-                }
-                return new Blob([await reorderedDoc.save()], { type: 'application/pdf' });
-            }
-        }
-
-        if (id === 'split') { 
-            const zip = new JSZip(); 
-            const executionSet = targetedIndices.length > 0 ? targetedIndices : Array.from({length: totalPages}, (_, i) => i);
-            for (let i = 0; i < executionSet.length; i++) { 
-                const targetIdx = executionSet[i];
-                const subDoc = await PDFDocument.create(); 
-                const [p] = await subDoc.copyPages(sourceDoc, [targetIdx]); 
-                subDoc.addPage(p); 
-                zip.file(`Page_${targetIdx + 1}.pdf`, await subDoc.save()); 
-            } 
-            return await zip.generateAsync({ type: "blob" }); 
-        } 
-
-        if (id === 'rotate') { 
-            const customAngle = parseInt(document.getElementById('custom-angle-select')?.value || "90");
-            if (targetedIndices.length > 0) {
-                targetedIndices.forEach(idx => {
-                    const p = sourceDoc.getPage(idx);
-                    p.setRotation(degrees((p.getRotation().angle + customAngle) % 360));
-                });
-            } else {
-                sourceDoc.getPages().forEach(p => p.setRotation(degrees((p.getRotation().angle + customAngle) % 360))); 
-            }
-        } else if (id === 'del') { 
-            const targetSet = targetedIndices.length > 0 ? targetedIndices : [parseInt(document.getElementById('pg-input').value) - 1];
-            // Safe mathematical sort from highest descending to avoid real-time positional shift faults
-            const sortedDesc = targetSet.filter(x => !isNaN(x) && x >= 0 && x < totalPages).sort((a,b) => b - a);
-            if (sortedDesc.length === 0) throw new Error("Invalid page index/range specified."); 
-            if (totalPages - sortedDesc.length <= 0) throw new Error("Cannot delete all remaining structural pages."); 
-            sortedDesc.forEach(idx => sourceDoc.removePage(idx));
-        } else if (id === 'extract') { 
-            const targetSet = targetedIndices.length > 0 ? targetedIndices : [parseInt(document.getElementById('pg-input').value) - 1];
-            if (targetSet.length === 0) throw new Error("Invalid target pages context.");
-            const newDoc = await PDFDocument.create(); 
-            const extractedPages = await newDoc.copyPages(sourceDoc, targetSet); 
-            extractedPages.forEach(p => newDoc.addPage(p));
-            sourceDoc = newDoc; 
-        } else if (id === 'watermark') { 
-            const text = document.getElementById('txt-input').value || "CONFIDENTIAL"; 
-            const fontSize = parseInt(document.getElementById('wm-size')?.value || "48");
-            const opacity = parseFloat(document.getElementById('wm-opacity')?.value || "0.3");
-            const position = document.getElementById('wm-pos')?.value || "center";
-            const rotationAngle = parseInt(document.getElementById('wm-rot')?.value || "45");
-            
-            sourceDoc.getPages().forEach(p => { 
-                const { width, height } = p.getSize(); 
-                let x = width / 4, y = height / 2;
-                if (position === 'top-left') { x = 50; y = height - 100; }
-                else if (position === 'top-right') { x = width - 200; y = height - 100; }
-                else if (position === 'bottom-left') { x = 50; y = 100; }
-                else if (position === 'bottom-right') { x = width - 200; y = 100; }
-                
-                p.drawText(text, { 
-                    x: x, 
-                    y: y, 
-                    size: fontSize, 
-                    color: rgb(0.8, 0.8, 0.8), 
-                    opacity: opacity, 
-                    rotate: degrees(rotationAngle) 
-                }); 
-            }); 
-        } else if (id === 'numbers') { 
-            const formatStr = document.getElementById('num-format')?.value || "Page X of Y";
-            const position = document.getElementById('num-pos')?.value || "bottom-right";
-            const startNum = parseInt(document.getElementById('num-start')?.value || "1");
-            const fontSize = parseInt(document.getElementById('num-size')?.value || "12");
-
-            sourceDoc.getPages().forEach((p, i) => { 
-                const { width, height } = p.getSize(); 
-                const activeIndexDisplay = i + startNum;
-                let displayString = formatStr.replace('X', activeIndexDisplay).replace('Y', totalPages);
-                if (formatStr === 'simple') displayString = `${activeIndexDisplay}`;
-                
-                let x = width - 70, y = 30;
-                if(position === 'bottom-center') { x = width / 2 - 20; y = 30; }
-                else if(position === 'bottom-left') { x = 40; y = 30; }
-                else if(position === 'top-center') { x = width / 2 - 20; y = height - 40; }
-                
-                p.drawText(displayString, { x: x, y: y, size: fontSize, color: rgb(0, 0, 0) }); 
-            }); 
-        } 
-        return new Blob([await sourceDoc.save()], { type: 'application/pdf' }); 
-    } 
-} 
-
-function activateWorkspace(id) { 
-    if (AppState.isProcessing) return; 
-    const box = document.getElementById('tool-workspace-box'); 
-    const canvas = document.getElementById('canvas-content'); 
-    const tool = ToolsConfig[id]; 
-    const config = ColorMap[tool.color] || ColorMap['blue-600']; 
-    AppState.activeId = id; 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
-    box.style.opacity = '0'; 
-    box.style.transform = 'scale(0.98)'; 
+    <link rel="preconnect" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com"> 
     
-    setTimeout(() => { 
-        canvas.className = "text-left space-y-5"; 
-        canvas.innerHTML = ` 
-        <div class="flex items-center space-x-3"> 
-            <div class="w-10 h-10 ${config.bg} text-white rounded-xl flex items-center justify-center text-lg shadow-sm"> 
-                <i class="fa-solid ${tool.icon}"></i> 
-            </div> 
-            <div> 
-                <h2 class="text-lg font-extrabold text-slate-900 leading-tight">${tool.name}</h2> 
-                <p class="text-xs text-slate-500">${tool.desc}</p> 
-            </div> 
-        </div> 
-        <div id="global-progress" class="hidden w-full bg-slate-100 rounded-full h-1.5 dark:bg-slate-200 animate-pulse">
-            <div class="${config.bg} h-1.5 rounded-full" style="width: 45%"></div>
+    <title>Free Online PDF Tools: Merge, Split, and Convert Securely</title> 
+    <meta name="description" content="Manage documents effortlessly with our modern, client-side PDF tools. Instantly merge, split, and convert PDFs locally in your browser. 100% secure, offline, and free." /> 
+    <meta name="keywords" content="free online pdf tools, merge pdf offline, split pdf free, convert image to pdf, secure pdf editor, client-side document tools, compress pdf without losing quality" /> 
+    
+    <link rel="canonical" href="https://pdfexpert.xyz/" /> 
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /> 
+    
+    <meta property="og:type" content="website" /> 
+    <meta property="og:site_name" content="Pdfexpert" /> 
+    <meta property="og:url" content="https://pdfexpert.xyz/" /> 
+    <meta property="og:title" content="Free Online PDF Tools: Merge, Split, and Convert Securely" /> 
+    <meta property="og:description" content="Manage documents effortlessly with a clean, high-level interface. 100% secure, browser-based PDF tools with zero file uploads required." /> 
+    <meta property="og:image" content="https://pdfexpert.xyz/assets/og-banner-1200x630.jpg" /> 
+    <meta property="og:locale" content="en_US" /> 
+    
+    <script type="application/ld+json"> { 
+        "@context": "https://schema.org", 
+        "@graph": [ 
+            { "@type": "Organization", "@id": "https://pdfexpert.xyz/#organization", "name": "Pdfexpert", "url": "https://pdfexpert.xyz/" }, 
+            { "@type": "WebPage", "@id": "https://pdfexpert.xyz/#webpage", "url": "https://pdfexpert.xyz/", "name": "Free Online PDF Tools", "isPartOf": { "@id": "https://pdfexpert.xyz/#organization" } }, 
+            { "@type": "WebApplication", "@id": "https://pdfexpert.xyz/#software", "name": "Pdfexpert Suite", "url": "https://pdfexpert.xyz/", "description": "A high-level, strictly client-side suite of free online PDF tools.", "applicationCategory": "BusinessApplication, BrowserApplication", "operatingSystem": "All", "offers": { "@type": "Offer", "price": "0.00", "priceCurrency": "USD" } },
+            { "@type": "FAQPage", "@id": "https://pdfexpert.xyz/#faq", "mainEntity": [ 
+                { "@type": "Question", "name": "Are my financial or personal PDF files completely secure?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. All file processing happens entirely locally within your browser. Your files are never uploaded to any external cloud servers." } }, 
+                { "@type": "Question", "name": "Is there a limit to how many PDFs I can process?", "acceptedAnswer": { "@type": "Answer", "text": "No. Our tool is designed for unrestricted use, allowing you to manage unlimited documents instantly for free." } } 
+            ] } 
+        ] 
+    } </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+    <nav class="pt-safe sticky top-0 z-40 w-full glass-panel shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 text-2xl font-extrabold text-blue-600 tracking-tight">
+                <i class="fa-solid fa-layer-group text-xl text-indigo-500"></i>
+                <span>PDF<span class="text-indigo-600">Expert</span></span>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-8 font-medium text-slate-600 text-sm">
+                <a href="#" class="text-blue-600 border-b-2 border-blue-600 pb-1">Home</a>
+                <a href="#about" class="hover:text-blue-600 transition">About Tools</a>
+                <a href="#faq-section" class="hover:text-blue-600 transition">FAQs</a>
+                <a href="#" class="hover:text-blue-600 transition">Privacy</a>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-1 border border-slate-200/60 rounded-full px-3 py-1 text-xs font-medium bg-white/50 shadow-sm">
+                    <span>🇺🇸 EN</span>
+                </div>
+            </div>
         </div>
-        <hr class="border-slate-200/60"> 
-        ${tool.render(tool)} 
-        <button id="execute-btn" class="w-full mt-4 ${config.bg} ${config.hover} text-white text-xs font-bold py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center"> 
-            Execute & Download ${tool.name} 
-        </button>`; 
+    </nav>
 
-        // Core Event Bindings 
-        document.getElementById('execute-btn').addEventListener('click', () => PDFEngine.execute(id)); 
-        
-        const fileZone = document.getElementById('drag-drop-zone');
-        const hiddenInput = document.getElementById('active-file-input');
-        if (fileZone && hiddenInput) {
-            fileZone.addEventListener('click', () => hiddenInput.click());
-            fileZone.addEventListener('dragover', (e) => { e.preventDefault(); fileZone.classList.add('bg-slate-100'); });
-            fileZone.addEventListener('dragleave', () => fileZone.classList.remove('bg-slate-100'));
-            fileZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                fileZone.classList.remove('bg-slate-100');
-                if (e.dataTransfer.files.length > 0) {
-                    hiddenInput.files = e.dataTransfer.files;
-                    AppUI.updateWorkspacePreviews(e.dataTransfer.files, id);
-                }
-            });
-            hiddenInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) AppUI.updateWorkspacePreviews(e.target.files, id);
-            });
+    <main class="flex-grow">
+        <header class="max-w-7xl mx-auto px-6 pt-16 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div class="lg:col-span-6 space-y-6" id="hero-workspace">
+                <div class="space-y-4">
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                        Free Online PDF Tools: <span class="text-blue-600">Merge, Split & Convert</span>
+                    </h1>
+                    <p class="text-lg text-slate-600 leading-relaxed max-w-lg">
+                        Manage your documents effortlessly with our suite of high-performance utilities. Your files never leave your device, ensuring complete privacy.
+                    </p>
+                </div>
+                
+                <div class="flex flex-wrap gap-4 pt-2">
+                    <div class="flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-emerald-100">
+                        <i class="fa-solid fa-shield-halved"></i> <span>100% Secure & Offline</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-blue-100">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> <span>No Cloud Uploads</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-indigo-100">
+                        <i class="fa-solid fa-bolt"></i> <span>Lightning Fast</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-6 flex justify-center relative">
+                <div class="w-full max-w-lg glass-panel shadow-xl rounded-3xl p-8 transition-all duration-300 transform" id="tool-workspace-box">
+                    <div class="flex items-center space-x-2 mb-6">
+                        <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                    </div>
+                    
+                    <div id="canvas-content" class="text-center py-8 space-y-4">
+                        <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-inner animate-pulse">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800">Select a Module</h2>
+                        <p class="text-sm text-slate-500 max-w-xs mx-auto">Choose a professional utility below to activate the workspace.</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section id="our-tools" class="max-w-7xl mx-auto px-6 py-12 border-t border-slate-200/50">
+            <div class="text-center space-y-2 mb-12">
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Our Premium Utility Modules</h2>
+                <p class="text-sm text-slate-500">Select a tool to start processing your files securely.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="tools-grid">
+                </div>
+        </section>
+
+        <section id="about" class="max-w-7xl mx-auto px-6 py-16 border-t border-slate-200/50 bg-white rounded-3xl my-8 shadow-sm">
+            <div class="max-w-4xl mx-auto text-center space-y-6">
+                <h2 class="text-3xl font-extrabold text-slate-900">Why Choose Our Client-Side PDF Editor?</h2>
+                <p class="text-slate-600 leading-relaxed text-left md:text-center">
+                    In an era where digital privacy is paramount, uploading sensitive legal, financial, or personal documents to cloud servers poses a significant risk. 
+                    <strong>PDFExpert</strong> revolutionizes document management by utilizing advanced <em>client-side processing</em>. 
+                    This means when you use our tools to <strong>merge PDF files</strong>, <strong>split PDF pages</strong>, or <strong>convert images to PDF</strong>, your data never leaves your computer. 
+                    Your web browser handles all the heavy lifting using cutting-edge web technologies, ensuring a completely offline, zero-upload environment.
+                </p>
+                <div class="grid md:grid-cols-3 gap-8 text-left mt-8 pt-8 border-t border-slate-100">
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-lock text-blue-500 mr-2"></i> Absolute Privacy</h3>
+                        <p class="text-sm text-slate-500">Zero data retention. Your files are processed in your browser's memory and are instantly destroyed once you close the tab.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-rocket text-indigo-500 mr-2"></i> Unmatched Speed</h3>
+                        <p class="text-sm text-slate-500">By eliminating upload and download wait times, our browser-based PDF editor works instantly, saving you valuable time.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-2"><i class="fa-solid fa-laptop-code text-emerald-500 mr-2"></i> No Installation</h3>
+                        <p class="text-sm text-slate-500">Access enterprise-grade document tools directly from any modern web browser without downloading bulky software.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq-section" class="max-w-7xl mx-auto px-6 py-16 mb-8">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-3xl font-extrabold text-slate-900 mb-8 text-center">Frequently Asked Questions</h2>
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-slate-800 mb-2">Are my financial or personal PDF files completely secure?</h3>
+                        <p class="text-sm text-slate-600">Yes. All file processing happens entirely locally within your browser using JavaScript. We offer a high-level secure environment where your files are never uploaded to any external cloud servers.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-slate-800 mb-2">Is there a limit to how many PDFs I can process?</h3>
+                        <p class="text-sm text-slate-600">No. Our tool is designed for unrestricted use. You can merge, split, and edit unlimited documents instantly without any premium paywalls or hidden limits.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold text-slate-800 mb-2">Will the quality of my PDF decrease after merging or splitting?</h3>
+                        <p class="text-sm text-slate-600">Not at all. We use lossless processing algorithms. Your output files retain the exact same DPI, resolution, and text clarity as your original documents.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="glass-panel border-t border-slate-200/60 pt-16 pb-8 text-xs text-slate-500 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            <div class="col-span-2 space-y-4">
+                <div class="flex items-center space-x-2 text-xl font-extrabold text-blue-600 tracking-tight">
+                    <i class="fa-solid fa-layer-group text-base text-indigo-500"></i>
+                    <span>PDF<span class="text-indigo-600">Expert</span></span>
+                </div>
+                <p class="text-slate-400 leading-relaxed max-w-sm">
+                    The ultimate suite of professional web utilities designed for speed, uncompromised privacy, and flawless offline document manipulation.
+                </p>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-800 mb-3 text-sm">Legal</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-blue-600 transition">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-blue-600 transition">Terms of Use</a></li>
+                    <li><a href="#" class="hover:text-blue-600 transition">Disclaimer</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-800 mb-3 text-sm">Connect</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-blue-600 transition">Contact Support</a></li>
+                    <li><a href="#" class="hover:text-blue-600 transition">Provide Feedback</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-6 border-t border-slate-200/60 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-400">
+            <p>© 2026 Pdfexpert Suite. All rights reserved.</p>
+            <p>Engineered for High Performance & Privacy.</p>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl space-x-2 z-50 items-center transform transition-all duration-300 translate-y-20 opacity-0 flex"></div>
+
+    <script>
+        const { PDFDocument, rgb, degrees } = PDFLib;
+
+        class AppUI {
+            static showToast(msg, type = 'success') {
+                const t = document.getElementById('toast');
+                const isError = type === 'error';
+                t.innerHTML = isError 
+                    ? `<i class="fa-solid fa-circle-exclamation text-sm"></i> <span>${msg}</span>` 
+                    : `<i class="fa-solid fa-circle-check text-sm"></i> <span>${msg}</span>`;
+                t.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-0 opacity-100 ${isError ? 'bg-red-500 shadow-red-200/50' : 'bg-emerald-600 shadow-emerald-200/50'}`;
+                setTimeout(() => { t.classList.remove('translate-y-0', 'opacity-100'); t.classList.add('translate-y-20', 'opacity-0'); }, 4000);
+            }
+
+            static renderFileInput(tool, multiple = false, accept = ".pdf") {
+                return `
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Source File(s)</label>
+                        <input type="file" id="active-file-input" ${multiple ? 'multiple' : ''} accept="${accept}" 
+                            class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-${tool.color}-50 file:text-${tool.color}-700 hover:file:bg-${tool.color}-100 cursor-pointer border border-dashed border-${tool.border.split('-')[2]}-200 rounded-2xl p-4 bg-${tool.color}-50/10 transition-colors">
+                    </div>
+                `;
+            }
+
+            static loadImgDims(input) {
+                if(!input.files || input.files.length === 0) return;
+                const file = input.files[0];
+                if(!file.type.startsWith('image/')) { this.showToast("Please select a valid image.", 'error'); return; }
+                const img = new Image();
+                img.onload = () => { document.getElementById('img-w').value = img.width; document.getElementById('img-h').value = img.height; }
+                img.src = URL.createObjectURL(file);
+            }
         }
 
-        // Feature Hooks & Specific Tool Interaction extensions
-        if (id === 'resizer') { 
-            const fileEl = document.getElementById('active-file-input'); 
-            const lockAspectCheckbox = document.getElementById('aspect-lock');
-            let originalRatio = 1;
+        class PDFEngine {
+            static async downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            }
 
-            fileEl.addEventListener('change', () => { 
-                if (!fileEl.files || fileEl.files.length === 0) return; 
-                const file = fileEl.files[0]; 
-                if (!file.type.startsWith('image/')) { 
-                    AppUI.showToast("Please select a valid image.", 'error'); 
-                    return; 
-                } 
-                const tempUrl = URL.createObjectURL(file); 
-                const tempImg = new Image(); 
-                tempImg.onload = () => { 
-                    document.getElementById('img-w').value = tempImg.width; 
-                    document.getElementById('img-h').value = tempImg.height; 
-                    originalRatio = tempImg.width / tempImg.height;
-                    URL.revokeObjectURL(tempUrl); 
-                }; 
-                tempImg.src = tempUrl; 
-            }); 
+            static async execute(id, toolDef) {
+                const input = document.getElementById('active-file-input');
+                const btn = document.getElementById('execute-btn');
+                if(!input || !input.files || input.files.length === 0) throw new Error("Please upload a required file to begin.");
+                
+                const originalBtnText = btn.innerHTML;
+                btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Processing...`; btn.classList.add('opacity-70', 'cursor-not-allowed');
 
-            document.getElementById('img-w').addEventListener('input', (e) => {
-                if(lockAspectCheckbox && lockAspectCheckbox.checked && originalRatio) {
-                    document.getElementById('img-h').value = Math.round(e.target.value / originalRatio);
+                try {
+                    let finalBlob = null; let filename = `Output_${id}.pdf`;
+                    if (id === 'resizer') { finalBlob = await this.processResizer(input.files[0]); filename = `Resized_Image.${document.getElementById('img-format').value.split('/')[1]}`; } 
+                    else if (id === 'imgToPdf') { finalBlob = await this.processImagesToPdf(input.files); } 
+                    else if (id === 'merge') { finalBlob = await this.processMerge(input.files); } 
+                    else {
+                        const fileBytes = await input.files[0].arrayBuffer();
+                        const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+                        finalBlob = await this.processSinglePDF(id, pdfDoc);
+                        if(id === 'split') filename = `Split_Pages.zip`;
+                    }
+                    if (finalBlob) { await this.downloadBlob(finalBlob, filename); AppUI.showToast("Operation completed successfully!"); }
+                } catch (error) { AppUI.showToast(error.message, 'error'); } 
+                finally { btn.disabled = false; btn.innerHTML = originalBtnText; btn.classList.remove('opacity-70', 'cursor-not-allowed'); }
+            }
+
+            static async processResizer(file) {
+                const w = parseInt(document.getElementById('img-w').value), h = parseInt(document.getElementById('img-h').value), format = document.getElementById('img-format').value;
+                if (!w || !h || w <= 0 || h <= 0) throw new Error("Invalid dimensions specified.");
+                const img = await new Promise((resolve, reject) => { const imgEl = new Image(); imgEl.onload = () => resolve(imgEl); imgEl.onerror = () => reject(new Error("Failed to decode image.")); imgEl.src = URL.createObjectURL(file); });
+                const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d', { alpha: format !== 'image/jpeg' });
+                if(format === 'image/jpeg') { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, w, h); }
+                ctx.drawImage(img, 0, 0, w, h);
+                return await new Promise(resolve => canvas.toBlob(resolve, format, 0.92));
+            }
+
+            static async processImagesToPdf(files) {
+                const doc = await PDFDocument.create(); const A4_WIDTH = 595.28, A4_HEIGHT = 841.89;
+                for (let f of files) {
+                    const bytes = await f.arrayBuffer(); let img;
+                    if (f.type === 'image/png') img = await doc.embedPng(bytes); else if (f.type === 'image/jpeg' || f.type === 'image/jpg') img = await doc.embedJpg(bytes); else continue;
+                    const scale = Math.min(A4_WIDTH / img.width, A4_HEIGHT / img.height);
+                    const scaledWidth = img.width * scale, scaledHeight = img.height * scale;
+                    const page = doc.addPage([A4_WIDTH, A4_HEIGHT]);
+                    page.drawImage(img, { x: (A4_WIDTH / 2) - (scaledWidth / 2), y: (A4_HEIGHT / 2) - (scaledHeight / 2), width: scaledWidth, height: scaledHeight });
                 }
-            });
-        } 
+                const pdfBytes = await doc.save(); return new Blob([pdfBytes], { type: 'application/pdf' });
+            }
 
-        box.style.opacity = '1'; 
-        box.style.transform = 'scale(1)'; 
-        box.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-    }, 200); 
-} 
+            static async processMerge(files) {
+                const doc = await PDFDocument.create();
+                for (let f of files) {
+                    const bytes = await f.arrayBuffer(); const src = await PDFDocument.load(bytes);
+                    const pages = await doc.copyPages(src, src.getPageIndices()); pages.forEach(p => doc.addPage(p));
+                }
+                const pdfBytes = await doc.save(); return new Blob([pdfBytes], { type: 'application/pdf' });
+            }
 
-// Set up standard declarative DOM initializers instead of global scope window bindings 
-document.addEventListener("DOMContentLoaded", () => { 
-    const grid = document.getElementById('tools-grid'); 
-    if(!grid) return;
-    
-    Object.keys(ToolsConfig).forEach(key => { 
-        const tool = ToolsConfig[key]; 
-        const card = document.createElement('a'); 
-        card.href = `#tool-${key}`; 
-        card.className = `glass-panel ${tool.border || 'border-slate-100'} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition-all duration-300 group cursor-pointer border`; 
-        card.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            if (AppState.isProcessing) return; 
-            activateWorkspace(key); 
-            history.pushState(null, null, `#tool-${key}`); 
-        }); 
-        card.innerHTML = ` 
-        <div class="w-14 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm"> 
-            <i class="fa-solid ${tool.icon}"></i> 
-        </div> 
-        <div class="text-left space-y-0.5"> 
-            <h3 class="font-bold text-slate-900 text-sm tracking-tight">${tool.name}</h3> 
-            <p class="text-slate-400 text-xs leading-tight">${tool.desc}</p> 
-        </div>`; 
-        grid.appendChild(card); 
-    }); 
+            static async processSinglePDF(id, sourceDoc) {
+                const totalPages = sourceDoc.getPageCount();
+                if (id === 'split') {
+                    const zip = new JSZip();
+                    for (let i = 0; i < totalPages; i++) {
+                        const subDoc = await PDFDocument.create(); const [p] = await subDoc.copyPages(sourceDoc, [i]); subDoc.addPage(p);
+                        const subBytes = await subDoc.save(); zip.file(`Page_${i + 1}.pdf`, subBytes);
+                    }
+                    return await zip.generateAsync({type: "blob"});
+                } 
+                if (id === 'rotate') { sourceDoc.getPages().forEach(p => p.setRotation(degrees((p.getRotation().angle + 90) % 360))); } 
+                else if (id === 'del') { const idx = parseInt(document.getElementById('pg-input').value) - 1; if (isNaN(idx) || idx < 0 || idx >= totalPages) throw new Error("Invalid page index."); if (totalPages <= 1) throw new Error("Cannot delete the last remaining page."); sourceDoc.removePage(idx); } 
+                else if (id === 'extract') { const idx = parseInt(document.getElementById('pg-input').value) - 1; if (isNaN(idx) || idx < 0 || idx >= totalPages) throw new Error("Invalid page index."); const newDoc = await PDFDocument.create(); const [extracted] = await newDoc.copyPages(sourceDoc, [idx]); newDoc.addPage(extracted); sourceDoc = newDoc; } 
+                else if (id === 'reorder') { const newDoc = await PDFDocument.create(); for (let i = totalPages - 1; i >= 0; i--) { const [p] = await newDoc.copyPages(sourceDoc, [i]); newDoc.addPage(p); } sourceDoc = newDoc; } 
+                else if (id === 'watermark') { const text = document.getElementById('txt-input').value || "CONFIDENTIAL"; sourceDoc.getPages().forEach(p => { const { width, height } = p.getSize(); p.drawText(text, { x: width / 4, y: height / 2, size: 48, color: rgb(0.8, 0.8, 0.8), opacity: 0.3, rotate: degrees(45) }); }); } 
+                else if (id === 'numbers') { sourceDoc.getPages().forEach((p, i) => { const { width } = p.getSize(); p.drawText(`${i + 1} / ${totalPages}`, { x: width - 70, y: 30, size: 12, color: rgb(0, 0, 0) }); }); }
+                const pdfBytes = await sourceDoc.save(); return new Blob([pdfBytes], { type: 'application/pdf' });
+            }
+        }
 
-    const targetHash = window.location.hash.replace('#tool-', ''); 
-    if (targetHash && ToolsConfig[targetHash]) { 
-        activateWorkspace(targetHash); 
-    } 
-}); 
+        const ToolsConfig = {
+            resizer: { name: "Image Resizer", desc: "Resize dimensions offline.", icon: "fa-compress", color: "red-500", border: "border-b-[3px] border-b-red-500 hover:border-red-500/40", render: (t) => `
+                <div class="space-y-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Image</label>
+                    <input type="file" id="active-file-input" accept="image/jpeg, image/png, image/webp" onchange="AppUI.loadImgDims(this)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer border border-dashed border-red-200 rounded-2xl p-4 bg-red-50/10">
+                    <div class="flex gap-2">
+                        <input type="number" id="img-w" placeholder="Width" class="w-1/2 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 outline-none transition">
+                        <input type="number" id="img-h" placeholder="Height" class="w-1/2 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 outline-none transition">
+                    </div>
+                    <select id="img-format" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 outline-none bg-white">
+                        <option value="image/jpeg">Export as JPG</option>
+                        <option value="image/png">Export as PNG</option>
+                        <option value="image/webp">Export as WebP</option>
+                    </select>
+                </div>` },
+            merge: { name: "Merge PDF", desc: "Combine multiple PDFs.", icon: "fa-copy", color: "blue-600", border: "border-b-[3px] border-b-blue-600 hover:border-blue-600/40", render: (t) => AppUI.renderFileInput(t, true) },
+            split: { name: "Split to ZIP", desc: "Extract pages into a ZIP.", icon: "fa-scissors", color: "emerald-600", border: "border-b-[3px] border-b-emerald-600 hover:border-emerald-600/40", render: (t) => AppUI.renderFileInput(t) },
+            rotate: { name: "Rotate Pages", desc: "Rotate all pages by 90°.", icon: "fa-rotate-right", color: "purple-600", border: "border-b-[3px] border-b-purple-600 hover:border-purple-600/40", render: (t) => AppUI.renderFileInput(t) },
+            del: { name: "Delete Page", desc: "Remove a specific page.", icon: "fa-trash", color: "amber-500", border: "border-b-[3px] border-b-amber-500 hover:border-amber-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="number" id="pg-input" placeholder="Page number (e.g. 1)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-amber-500 outline-none">` },
+            extract: { name: "Extract Page", desc: "Isolate a single page.", icon: "fa-file-export", color: "orange-500", border: "border-b-[3px] border-b-orange-500 hover:border-orange-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="number" id="pg-input" placeholder="Page number to extract" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-orange-500 outline-none">` },
+            reorder: { name: "Reverse PDF", desc: "Flip layout order backwards.", icon: "fa-arrow-down-up-across-line", color: "pink-600", border: "border-b-[3px] border-b-pink-600 hover:border-pink-600/40", render: (t) => AppUI.renderFileInput(t) },
+            watermark: { name: "Watermark", desc: "Stamp custom text.", icon: "fa-stamp", color: "cyan-500", border: "border-b-[3px] border-b-cyan-500 hover:border-cyan-500/40", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="txt-input" placeholder="Text (e.g., CONFIDENTIAL)" class="w-full mt-3 px-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-cyan-500 outline-none">` },
+            numbers: { name: "Page Numbers", desc: "Inject sequence digits.", icon: "fa-list-ol", color: "teal-500", border: "border-b-[3px] border-b-teal-500 hover:border-teal-500/40", render: (t) => AppUI.renderFileInput(t) },
+            imgToPdf: { name: "Image to PDF", desc: "Convert photos to A4 PDF.", icon: "fa-images", color: "blue-700", border: "border-b-[3px] border-b-blue-700 hover:border-blue-700/40", render: (t) => AppUI.renderFileInput(t, true, "image/*") }
+        };
 
-// Static configuration dictionary definitions serving explicit production workflows
-window.ToolsConfig = {
-    merge: {
-        name: "Merge PDF",
-        desc: "Combine multiple PDF files into one production document.",
-        color: "blue-600", icon: "fa-layer-group",
-        render: (t) => AppUI.renderFileInput(t, true) + `
-        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs mt-2">
-            <span class="font-semibold text-slate-700">Apply Stream Compression Optimization</span>
-            <input type="checkbox" id="compression-toggle" checked class="rounded text-blue-600">
-        </div>`
-    },
-    split: {
-        name: "Split PDF",
-        desc: "Extract specific pages or break pages into separate files.",
-        color: "emerald-600", icon: "fa-scissors",
-        render: (t) => AppUI.renderFileInput(t, false) + `
-        <div class="space-y-2 mt-2">
-            <label class="block text-xs font-bold text-slate-500 uppercase">Target Page Ranges / Selection Mapping</label>
-            <input type="text" id="pg-input" placeholder="e.g. 1-3, 5, 7-10" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        </div>`
-    },
-    rotate: {
-        name: "Rotate PDF",
-        desc: "Adjust structural landscape or portrait rotations.",
-        color: "purple-600", icon: "fa-rotate",
-        render: (t) => AppUI.renderFileInput(t, false) + `
-        <div class="space-y-2 mt-2">
-            <label class="block text-xs font-bold text-slate-500 uppercase">Custom Angle Increment</label>
-            <select id="custom-angle-select" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="90">90 Degrees Clockwise</option>
-                <option value="180">180 Degrees Flip</option>
-                <option value="270">270 Degrees Counter-Clockwise</option>
-            </select>
-            <input type="hidden" id="pg-input" placeholder="All Pages">
-        </div>`
-    },
-    del: {
-        name: "Delete Pages",
-        desc: "Strip unwanted structural components or empty index layers.",
-        color: "red-500", icon: "fa-trash-can",
-        render: (t) => AppUI.renderFileInput(t, false) + `
-        <div class="space-y-2 mt-2">
-            <label class="block text-xs font-bold text-slate-500 uppercase">Pages to Delete</label>
-            <input type="text" id="pg-input" placeholder="e.g. 2, 4-6" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500">
-        </div>`
-    },
-    extract: {
-        name: "Extract Pages",
-        desc: "Isolate precise ranges into standalone compilation states.",
-        color: "amber-500", icon: "fa-folder-open",
-        render: (t) => AppUI.renderFileInput(t, false) + `
-        <div class="space-y-2 mt-2">
-            <label class="block text-xs font-bold text-slate-500 uppercase">Pages to Extract</label>
-            <input type="text" id="pg-input" placeholder="e.g. 1, 3, 5-7" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
-        </div>`
-    },
-    reorder: {
-        name: "Reorder Pages",
-        desc: "Drag and drop sequence structural transformations safely.",
-        color: "orange-500", icon: "fa-arrow-down-z-a",
-        render: (t) => AppUI.renderFileInput(t, false)
-    },
-    watermark: {
-        name: "Watermark PDF",
-        desc: "Inject anti-piracy text security wrappers directly.",
-        color: "pink-600", icon: "fa-stamp",
-        render: (t) => AppUI.renderFileInput(t, false) + `
-        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Watermark Core Text</label>
-                <input type="text" id="txt-input" value="CONFIDENTIAL" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Font Size</label>
-                    <input type="number" id="wm-size" value="48" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
+        const grid = document.getElementById('tools-grid');
+        Object.keys(ToolsConfig).forEach(key => {
+            const tool = ToolsConfig[key];
+            const card = document.createElement('a');
+            // Adding a dynamic hash URL to improve crawling signals
+            card.href = `#tool-${key}`;
+            card.className = `glass-panel ${tool.border} p-5 rounded-2xl flex items-center space-x-4 hover:shadow-md transition-all duration-300 group cursor-pointer border border-slate-100`;
+            card.onclick = (e) => { e.preventDefault(); activateWorkspace(key); history.pushState(null, null, `#tool-${key}`); };
+            card.innerHTML = `
+                <div class="w-14 h-12 bg-${tool.color} text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 transition-transform group-hover:scale-105 shadow-sm">
+                    <i class="fa-solid ${tool.icon}"></i>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Position Variant</label>
-                    <select id="wm-pos" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                        <option value="center">Centered Alignment</option>
-                        <option value="top-left">Top Left</option>
-                        <option value="top-right">Top Right</option>
-                        <option value="bottom-left">Bottom Left</option>
-                        <option value="bottom-right">Bottom Right</option>
-                    </select>
+                <div class="text-left space-y-0.5">
+                    <h3 class="font-bold text-slate-900 text-sm tracking-tight">${tool.name}</h3>
+                    <p class="text-slate-400 text-xs leading-tight">${tool.desc}</p>
                 </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Opacity Scale</label>
-                    <input type="range" id="wm-opacity" min="0.1" max="1" step="0.1" value="0.3" class="w-full mt-2">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Rotation angle</label>
-                    <input type="number" id="wm-rot" value="45" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-            </div>
-        </div>`
-    },
-    numbers: {
-        name: "Page Numbers",
-        desc: "Stamp professional unified pagination numbering protocols.",
-        color: "cyan-500", icon: "fa-list-ol",
-        render: (t) => AppUI.renderFileInput(t, false) + `
-        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Format Layout</label>
-                    <select id="num-format" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                        <option value="Page X of Y">Page X of Y (Advanced)</option>
-                        <option value="simple">X (Numeric Index Only)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Placement Context</label>
-                    <select id="num-pos" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                        <option value="bottom-right">Bottom Right Corner</option>
-                        <option value="bottom-center">Bottom Centered</option>
-                        <option value="bottom-left">Bottom Left Corner</option>
-                        <option value="top-center">Top Centered</option>
-                    </select>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Starting Number</label>
-                    <input type="number" id="num-start" value="1" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Font Size</label>
-                    <input type="number" id="num-size" value="12" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-            </div>
-        </div>`
-    },
-    imgToPdf: {
-        name: "Image to PDF",
-        desc: "Convert lossless structural photography or documents safely.",
-        color: "teal-500", icon: "fa-file-image",
-        render: (t) => AppUI.renderFileInput(t, true, "image/*") + `
-        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Page Layout</label>
-                    <select id="img-layout-select" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                        <option value="A4">A4 Standard Standardized</option>
-                        <option value="LETTER">Letter Dimensional Layout</option>
-                        <option value="CUSTOM">Custom Sized Setup Context</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grid Pattern (Images per Page)</label>
-                    <select id="img-grid-select" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                        <option value="1x1">1 Image Per Page (Standard)</option>
-                        <option value="2x2">2x2 Grid Layout (Batch Consolidation)</option>
-                    </select>
-                </div>
-            </div>
-            <div id="custom-layout-dims" class="grid grid-cols-2 gap-3 hidden">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Width (px)</label>
-                    <input type="number" id="custom-layout-w" value="595" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Height (px)</label>
-                    <input type="number" id="custom-layout-h" value="841" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-            </div>
-        </div>`
-    },
-    resizer: {
-        name: "Image Resizer",
-        desc: "Recalibrate dimensional data layers on responsive targets.",
-        color: "blue-700", icon: "fa-compress",
-        render: (t) => AppUI.renderFileInput(t, false, "image/*") + `
-        <div class="space-y-3 mt-2 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Width Axis (px)</label>
-                    <input type="number" id="img-w" placeholder="Width" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Height Axis (px)</label>
-                    <input type="number" id="img-h" placeholder="Height" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                </div>
-            </div>
-            <div class="flex items-center justify-between text-xs p-1">
-                <span class="font-semibold text-slate-600">Lock Proportional Aspect Ratio</span>
-                <input type="checkbox" id="aspect-lock" checked class="rounded text-blue-700">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Output Encoding Format</label>
-                    <select id="img-format" class="w-full text-xs p-2.5 rounded-lg border border-slate-200">
-                        <option value="image/jpeg">JPEG Standard Compression</option>
-                        <option value="image/png">PNG Alpha Transparency</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quality Compression Slider</label>
-                    <input type="range" id="img-quality" min="0.5" max="1" step="0.05" value="0.92" class="w-full mt-3">
-                </div>
-            </div>
-        </div>`
-    }
-};
+            `;
+            grid.appendChild(card);
+        });
 
-})();
+        window.activateWorkspace = function(id) {
+            const box = document.getElementById('tool-workspace-box');
+            const canvas = document.getElementById('canvas-content');
+            const tool = ToolsConfig[id];
+            
+            box.style.opacity = '0';
+            box.style.transform = 'scale(0.98)';
+            
+            setTimeout(() => {
+                canvas.className = "text-left space-y-5";
+                canvas.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-${tool.color} text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
+                            <i class="fa-solid ${tool.icon}"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-extrabold text-slate-900 leading-tight">${tool.name}</h2>
+                            <p class="text-xs text-slate-500">${tool.desc}</p>
+                        </div>
+                    </div>
+                    <hr class="border-slate-200/60">
+                    ${tool.render(tool)}
+                    <button id="execute-btn" onclick="PDFEngine.execute('${id}')" class="w-full mt-4 bg-${tool.color} hover:opacity-90 text-white text-xs font-bold py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center">
+                        Execute ${tool.name}
+                    </button>
+                `;
+                box.style.opacity = '1'; box.style.transform = 'scale(1)';
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 200);
+        }
+    </script>
+</body>
+</html>
