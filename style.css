@@ -29,17 +29,3 @@ Body {
 .drag-over { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
 
 .preview-scroll::-webkit-scrollbar { height: 6px; }
-
-/* --- PWA Premium Enhancements --- */
-#pwa-install-btn {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-#pwa-install-btn.hidden {
-    display: none !important;
-}
-#pwa-install-modal {
-    transition: opacity 0.3s ease-in-out;
-}
-#pwa-install-modal.flex {
-    display: flex !important;
-}
