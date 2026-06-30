@@ -1,4 +1,4 @@
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+PdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 const { PDFDocument, rgb, degrees } = PDFLib;
 
@@ -662,7 +662,6 @@ const ToolsConfig = {
     reorder: { name: "Reverse PDF", desc: "Flip layout order backwards.", icon: "fa-arrow-down-up-across-line", color: "pink-600", render: (t) => AppUI.renderFileInput(t) + `<input type="text" id="pg-input" placeholder="Pages to reverse (e.g. 1-3) or blank for all" class="w-full mt-4 px-4 py-3.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-pink-500/50 outline-none transition-shadow">` }
 };
 
-// --- یہاں سے تبدیلیاں کی گئی ہیں ---
 const toolMapping = {
     'image-resizer': 'resizer',
     'merge-pdf': 'merge',
@@ -687,7 +686,6 @@ document.querySelectorAll('#tools-grid [data-tool]').forEach(card => {
         }
     });
 });
-// --- تبدیلیوں کا اختتام ---
 
 window.closeTool = function() {
     const panel = document.getElementById('hero-tool-panel');
@@ -702,7 +700,6 @@ window.closeTool = function() {
         document.getElementById('about').classList.remove('hidden');
         document.getElementById('faq-section').classList.remove('hidden');
         
-        // Small delay to allow display block to apply before fading in
         setTimeout(() => {
             document.getElementById('main-header').classList.remove('opacity-0');
             document.getElementById('our-tools').classList.remove('opacity-0');
@@ -716,25 +713,21 @@ window.closeTool = function() {
 };
 
 window.activateWorkspace = function(id) {
-    // Fade out Home sections
     document.getElementById('main-header').classList.add('opacity-0');
     document.getElementById('our-tools').classList.add('opacity-0');
     document.getElementById('about').classList.add('opacity-0');
     document.getElementById('faq-section').classList.add('opacity-0');
     
     setTimeout(() => {
-        // Hide Home sections
         document.getElementById('main-header').classList.add('hidden');
         document.getElementById('our-tools').classList.add('hidden');
         document.getElementById('about').classList.add('hidden');
         document.getElementById('faq-section').classList.add('hidden');
         
-        // Show Hero Panel
         const panel = document.getElementById('hero-tool-panel');
         panel.classList.remove('hidden');
         panel.classList.add('flex');
         
-        // Fade in
         setTimeout(() => panel.classList.remove('opacity-0'), 20);
         
         const box = document.getElementById('tool-workspace-box');
@@ -800,3 +793,77 @@ window.activateWorkspace = function(id) {
         }, 100);
     }, 300);
 }
+
+// --- PWA Installation & Service Worker Integration ---
+
+let deferredPrompt;
+const installBtn = document.getElementById('pwa-install-btn');
+const installModal = document.getElementById('pwa-install-modal');
+const cancelBtn = document.getElementById('pwa-cancel-btn');
+const confirmBtn = document.getElementById('pwa-confirm-btn');
+
+// Register the PWA Service Worker gracefully
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(reg => console.log('Service Worker actively running.'))
+            .catch(err => console.error('Service Worker registration failed:', err));
+    });
+}
+
+// Intercept browser install prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // Prevent standard browser mini-info bar
+    deferredPrompt = e; // Store event for later custom triggering
+    if(installBtn) installBtn.classList.remove('hidden'); // Reveal premium button
+});
+
+// UI Event Handlers for Install Flow
+if(installBtn) {
+    installBtn.addEventListener('click', () => {
+        if(installModal) {
+            installModal.classList.remove('hidden');
+            installModal.classList.add('flex');
+            setTimeout(() => installModal.classList.remove('opacity-0'), 10);
+        }
+    });
+}
+
+if(cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+        if(installModal) {
+            installModal.classList.add('opacity-0');
+            setTimeout(() => {
+                installModal.classList.add('hidden');
+                installModal.classList.remove('flex');
+            }, 300);
+        }
+    });
+}
+
+if(confirmBtn) {
+    confirmBtn.addEventListener('click', async () => {
+        if(installModal) {
+            installModal.classList.add('opacity-0');
+            setTimeout(() => {
+                installModal.classList.add('hidden');
+                installModal.classList.remove('flex');
+            }, 300);
+        }
+        
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Install prompt outcome: ${outcome}`);
+            deferredPrompt = null;
+            installBtn.classList.add('hidden');
+        }
+    });
+}
+
+// Clean up after successful installation
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    if(installBtn) installBtn.classList.add('hidden');
+    console.log('PDFExpert PWA cleanly installed');
+});
