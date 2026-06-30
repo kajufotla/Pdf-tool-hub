@@ -17,6 +17,11 @@
     <!-- Updated Google Site Verification Tag -->
     <meta name="google-site-verification" content="qlxW5HyhRrcsYx2S4vzYx8cSfH361HOy_T48NCndlwo" />
     
+    <!-- PWA Required Meta Tags & Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="favicon.png">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com"> 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
     <link rel="dns-prefetch" href="https://fonts.googleapis.com"> 
@@ -84,7 +89,13 @@
                 <a href="#faq-section" class="hover:text-blue-600 transition">FAQs</a>
             </div>
             
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <!-- New Install App Button -->
+                <button id="pwa-install-btn" class="group flex items-center space-x-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 will-change-transform">
+                    <img src="favicon.png" alt="App Icon" class="w-3.5 h-3.5 rounded-sm bg-white/20 p-[1px]">
+                    <span>Install App</span>
+                </button>
+                
                 <div class="flex items-center space-x-1 border border-slate-200/60 rounded-full px-3 py-1 text-xs font-medium bg-white/50 shadow-sm">
                     <span>🇺🇸 EN</span>
                 </div>
@@ -339,6 +350,23 @@
     </footer>
 
     <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl space-x-2 z-50 items-center transition duration-300 transform translate-y-20 opacity-0 flex gpu-accelerate"></div>
+
+    <!-- PWA Custom Install Modal -->
+    <div id="pwa-install-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 gpu-accelerate">
+            <div class="flex items-center space-x-4 mb-5">
+                <img src="favicon.png" alt="PDFExpert Logo" class="w-12 h-12 rounded-xl shadow-sm border border-slate-100">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Install PDFExpert</h3>
+                    <p class="text-xs text-slate-500 mt-1">Install our web app for lightning-fast access and offline capabilities directly from your home screen.</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <button id="pwa-cancel-btn" class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors">Cancel</button>
+                <button id="pwa-confirm-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors">OK</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
