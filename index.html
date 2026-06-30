@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-LMELL2FZ4F"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -14,10 +13,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
-    <!-- Updated Google Site Verification Tag -->
     <meta name="google-site-verification" content="qlxW5HyhRrcsYx2S4vzYx8cSfH361HOy_T48NCndlwo" />
     
-    <!-- PWA Required Meta Tags & Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="favicon.png">
@@ -32,7 +29,6 @@
     <meta name="description" content="Manage documents effortlessly with our modern, client-side PDF tools. Instantly merge, split, and convert PDFs locally in your browser. Highly secure, offline, and free." /> 
     <meta name="keywords" content="free online pdf tools, merge pdf offline, split pdf free, convert image to pdf, secure pdf editor, client-side document tools, compress pdf without losing quality" /> 
     
-    <!-- Corrected Domain URLs for SEO -->
     <link rel="canonical" href="https://pdfexprt.xyz/" /> 
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /> 
     
@@ -44,7 +40,6 @@
     <meta property="og:image" content="https://pdfexprt.xyz/assets/og-banner-1200x630.jpg" /> 
     <meta property="og:locale" content="en_US" /> 
     
-    <!-- Corrected Domain URLs in JSON-LD Schema -->
     <script type="application/ld+json"> { 
         "@context": "https://schema.org", 
         "@graph": [ 
@@ -90,7 +85,6 @@
             </div>
             
             <div class="flex items-center space-x-3 md:space-x-4">
-                <!-- New Install App Button -->
                 <button id="pwa-install-btn" class="group flex items-center space-x-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 will-change-transform">
                     <img src="favicon.png" alt="App Icon" class="w-3.5 h-3.5 rounded-sm bg-white/20 p-[1px]">
                     <span>Install App</span>
@@ -351,7 +345,6 @@
 
     <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl text-white text-xs font-semibold shadow-2xl space-x-2 z-50 items-center transition duration-300 transform translate-y-20 opacity-0 flex gpu-accelerate"></div>
 
-    <!-- PWA Custom Install Modal -->
     <div id="pwa-install-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 gpu-accelerate">
             <div class="flex items-center space-x-4 mb-5">
@@ -369,5 +362,19 @@
     </div>
 
     <script src="script.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(registration => {
+              console.log('Service Worker registered successfully with scope:', registration.scope);
+            })
+            .catch(error => {
+              console.error('Service Worker registration failed:', error);
+            });
+        });
+      }
+    </script>
 </body>
 </html>
