@@ -1,100 +1,166 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-  <!-- HOME -->
-  <url>
-    <loc>https://pdfexprt.xyz/</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
+    <!-- ========================================== -->
+    <!-- 1. CORE DOMAIN (Highest Priority)          -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
 
-  <!-- CORE LEGAL PAGES -->
-  <url>
-    <loc>https://pdfexprt.xyz/privacy-policy.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/terms-of-use.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/disclaimer.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/contact.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
-  </url>
+    <!-- ========================================== -->
+    <!-- 2. TOPICAL CATEGORY HUBS (Authority Silos) -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/organize-pdf/</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/edit-pdf/</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/convert-pdf/</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/optimize-pdf/</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
 
-  <!-- TOOL PAGES (SEO CLUSTER READY) -->
-  <url>
-    <loc>https://pdfexprt.xyz/merge-pdf.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/split-pdf.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/compress-pdf.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/rotate-pdf.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/watermark-pdf.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/page-numbers.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/image-resizer.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/pdf-to-jpg.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/jpg-to-pdf.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://pdfexprt.xyz/extract-pages.html</loc>
-    <lastmod>2026-07-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
+    <!-- ========================================== -->
+    <!-- 3. CORE TOOLS: ORGANIZE SILO               -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/organize-pdf/merge-pdf</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/organize-pdf/split-pdf</loc> <!-- Optimized from "split-to-zip" -->
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/organize-pdf/extract-pdf-pages</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/organize-pdf/remove-pdf-pages</loc> <!-- Optimized from "delete-page" -->
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
 
+    <!-- ========================================== -->
+    <!-- 4. CORE TOOLS: EDIT SILO                   -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/edit-pdf/rotate-pdf</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/edit-pdf/add-watermark</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/edit-pdf/add-page-numbers</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/edit-pdf/reverse-pdf-order</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- ========================================== -->
+    <!-- 5. CORE TOOLS: CONVERT SILO (Expanded)     -->
+    <!-- ========================================== -->
+    <!-- Split generic "Image to PDF" into high-volume long-tail targets -->
+    <url>
+        <loc>https://pdfexprt.xyz/convert-pdf/jpg-to-pdf</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/convert-pdf/png-to-pdf</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- ========================================== -->
+    <!-- 6. CORE TOOLS: OPTIMIZE SILO               -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/optimize-pdf/compress-pdf</loc> <!-- Optimized from "image resizer" for search intent -->
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- ========================================== -->
+    <!-- 7. CONTENT GROWTH ENGINE: GUIDES & BLOG    -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/guides/</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <!-- Featured Snippet / High-Volume Informational Targets -->
+    <url>
+        <loc>https://pdfexprt.xyz/guides/how-to-combine-pdf-files-free</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/guides/reduce-pdf-file-size-without-losing-quality</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://pdfexprt.xyz/guides/secure-offline-pdf-editing</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- ========================================== -->
+    <!-- 8. SUPPORTING SEO ASSETS (Snippet Bait)    -->
+    <!-- ========================================== -->
+    <url>
+        <loc>https://pdfexprt.xyz/resources/pdf-security-faq</loc>
+        <lastmod>2026-07-01T00:00:00+00:00</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
 </urlset>
